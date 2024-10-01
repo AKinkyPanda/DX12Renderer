@@ -1,4 +1,2 @@
-﻿D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(17,16-50): warning X3576: semantics in type overridden by variable/function or enclosing type
-  
-  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\PixelShader.cso
+﻿  Tutorial2.cpp
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe

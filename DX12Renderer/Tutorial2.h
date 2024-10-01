@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Window.h"
 #include "Mesh.h"
+#include "PipelineState.h"
 
 #include <DirectXMath.h>
 
@@ -99,7 +100,9 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 
     // Pipeline state object.
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
+    //Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
+    //Microsoft::WRL::ComPtr<PipelineState> m_PipelineState;
+    std::shared_ptr<PipelineState> m_PipelineState;
 
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT m_ScissorRect;

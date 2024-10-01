@@ -16,23 +16,25 @@ class Device;
 class PipelineState
 {
 public:
-	PipelineState() = default;
-	void SetupPipelineState(std::wstring vertexName, std::wstring pixelName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth = true);
+	PipelineState(std::wstring vertexName, std::wstring pixelName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth = true);
 
 	/// <summary>
 	/// Returns a pointer to the pipeline state object
 	/// </summary>
 	/// <returns></returns>
-	inline ComPtr<ID3D12PipelineState>& GetPipelineState() { return m_pipelineState; }
+	ComPtr<ID3D12PipelineState> GetPipelineState();
 
 	/// <summary>
 	/// Returns a pointer to the root signature object
 	/// </summary>
 	/// <returns></returns>
-	inline ComPtr<ID3D12RootSignature>& GetRootSignature() { return m_rootSignature; }
-protected:
-	virtual void CreateRootSignature() = 0;
-	virtual void CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth) = 0;
+	ComPtr<ID3D12RootSignature> GetRootSignature();
+
+private:
+	// For now both of these are hardcoded...
+	// but since we don't need anything else that's fine
+	void CreateRootSignature();
+	void CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth);
 
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3D12PipelineState> m_pipelineState;

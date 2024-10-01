@@ -37,13 +37,6 @@ constexpr const T& clamp(const T& val, const T& min, const T& max)
     return val < min ? min : val > max ? max : val;
 }
 
-// Vertex data for a colored cube.
-//struct VertexPosColor
-//{
-//    XMFLOAT3 Position;
-//    XMFLOAT3 Color;
-//};
-
 static VertexPosColor g_Vertices[8] = {
     { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
     { XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
@@ -144,28 +137,9 @@ bool Tutorial2::LoadContent()
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
 
-    // Upload vertex buffer data.
-    ComPtr<ID3D12Resource> intermediateVertexBuffer;
-    UpdateBufferResource(commandList,
-        &m_VertexBuffer, &intermediateVertexBuffer,
-        _countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
+    m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
-    // Create the vertex buffer view.
-    m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
-    m_VertexBufferView.SizeInBytes = sizeof(g_Vertices);
-    m_VertexBufferView.StrideInBytes = sizeof(VertexPosColor);
-
-    // Upload index buffer data.
-    ComPtr<ID3D12Resource> intermediateIndexBuffer;
-    UpdateBufferResource(commandList,
-        &m_IndexBuffer, &intermediateIndexBuffer,
-        _countof(g_Indicies), sizeof(WORD), g_Indicies);
-
-    // Create index buffer view.
-    m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
-    m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-    m_IndexBufferView.SizeInBytes = sizeof(g_Indicies);
-
+    /*
     // Load the vertex shader.
     ComPtr<ID3DBlob> vertexShaderBlob;
     ThrowIfFailed(D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob));
@@ -248,14 +222,14 @@ bool Tutorial2::LoadContent()
     ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
 
     auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-    commandQueue->WaitForFenceValue(fenceValue);
+    commandQueue->WaitForFenceValue(fenceValue);*/
+
+    m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
     m_ContentLoaded = true;
 
     // Resize/Create the depth buffer.
     ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
-
-    m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
     return true;
 }
@@ -350,13 +324,13 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
     // Update the model matrix.
-    float angle2 = static_cast<float>(e.TotalTime * 1);
-    const XMVECTOR rotationAxis2 = XMVectorSet(1, 0, 0, 0);
-    m_TempModelMatrix = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2)) * XMMatrixScaling(0.25, 0.25, 0.25);
+    float angle2 = static_cast<float>(0.001);
+    const XMVECTOR rotationAxis2 = XMVectorSet(0, 1, 0, 0);
+    m_TempModelMatrix = XMMatrixTranslation(0, -25, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2)) * XMMatrixScaling(0.25, 0.25, 0.25);
 
     // Update the view matrix.
-    const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
-    const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
+    const XMVECTOR eyePosition = XMVectorSet(0, -50, 150, 1);
+    const XMVECTOR focusPoint = XMVectorSet(0, 150, 0, 1);
     const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
     m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
@@ -414,30 +388,11 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         ClearDepth(commandList, dsv);
     }
 
-    commandList->SetPipelineState(m_PipelineState.Get());
-    commandList->SetGraphicsRootSignature(m_RootSignature.Get());
-    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
-
-    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    commandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-    commandList->IASetIndexBuffer(&m_IndexBufferView);
-    
-    commandList->RSSetViewports(1, &m_Viewport);
-    commandList->RSSetScissorRects(1, &m_ScissorRect);
-
-    commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-
-    // Update the MVP matrix
-    XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
-    mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
-    commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
-
-    commandList->DrawIndexedInstanced(_countof(g_Indicies), 1, 0, 0, 0);
-
     // Test Meshes
     for (int i = 0; i < m_meshes.size(); i++) {
-        commandList->SetPipelineState(m_PipelineState.Get());
-        commandList->SetGraphicsRootSignature(m_RootSignature.Get());
+        commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
+        commandList->SetGraphicsRootSignature(m_PipelineState->GetRootSignature().Get());
+        commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));

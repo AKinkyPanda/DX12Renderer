@@ -11,7 +11,7 @@ struct PixelOutput
     float4 Color : SV_Target0;
 };
 
-Texture2D TextureCoordinate : register(t0);
+Texture2D Diffuse : register(t0);
 SamplerState Sampler : register(s0);
 
 PixelOutput main(PixelShaderInput IN) : SV_Target0
@@ -30,9 +30,9 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
 
     PixelOutput OUT;
 
-    float4 albedo = Color.Sample(Sampler, IN.UV);
+    float4 albedo = Diffuse.Sample(Sampler, IN.UV);
     OUT.Color = albedo;
 
-    OUT.Color = IN.Normal;
+    //OUT.Color = IN.Normal;
 	return OUT;
 }

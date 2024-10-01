@@ -173,10 +173,10 @@ const Texture* LoadTexture(const std::string& filePath)
 
 	if (textureInMap == m_textures.end())
 	{
-		if (DoesFileExist(ROOT + filePath))
+		if (DoesFileExist("D:/Git/DX12Renderer/Assets/Models/crytek-sponza/" + filePath))
 		{
 			int width, height, channels = 0;
-			std::vector<uint8_t> buffer = ReadBinaryFile(ROOT + filePath);
+			std::vector<uint8_t> buffer = ReadBinaryFile("D:/Git/DX12Renderer/Assets/Models/crytek-sponza/" + filePath);
 			unsigned char* data = stbi_load_from_memory(buffer.data(), static_cast<int>(buffer.size()), &width, &height, &channels, 4);
 			std::vector<uint8_t> imageData = std::vector<uint8_t>(data, data + width * height * 4);
 			texture = new Texture(filePath, imageData, XMFLOAT2(width, height));
