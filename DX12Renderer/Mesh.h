@@ -22,10 +22,16 @@ struct VertexPosColor
 	}
 	void SetNormal(const DirectX::XMFLOAT3& normal)
 	{
-		Color = normal;
+		Normal = normal;
 	}
+	void SetTexCoord(const DirectX::XMFLOAT2& texCoord)
+	{
+		TexCoord = texCoord;
+	}
+
 	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT3 Color;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 TexCoord;
 };
 
 struct BufferData

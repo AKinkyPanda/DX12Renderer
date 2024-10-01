@@ -26,6 +26,7 @@ using namespace Microsoft::WRL;
 #include "Mesh.h"
 #include "DescriptorHeap.h"
 #include "ObjLoader.h"
+#include "Texture.h"
 
 using namespace DirectX;
 
@@ -143,8 +144,6 @@ bool Tutorial2::LoadContent()
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
 
-    
-
     // Upload vertex buffer data.
     ComPtr<ID3D12Resource> intermediateVertexBuffer;
     UpdateBufferResource(commandList,
@@ -178,7 +177,8 @@ bool Tutorial2::LoadContent()
     // Create the vertex input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
 
     // Create a root signature.
@@ -197,12 +197,18 @@ bool Tutorial2::LoadContent()
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
+    CD3DX12_DESCRIPTOR_RANGE1 descRange[1];
+    descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // Bind to t0
+
     // A single 32-bit constant root parameter that is used by the vertex shader.
-    CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+    CD3DX12_ROOT_PARAMETER1 rootParameters[2];
     rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+    rootParameters[1].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+
+    CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-    rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+    rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &sampler, rootSignatureFlags);
 
     // Serialize the root signature.
     ComPtr<ID3DBlob> rootSignatureBlob;
@@ -250,24 +256,6 @@ bool Tutorial2::LoadContent()
     ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
 
     m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
-
-    //std::vector<VertexPosColor> new_Verts;
-    //for (int i = 0; i < 8; i++)
-    //{
-    //    new_Verts.emplace_back(g_Vertices[i]);
-    //}
-    //m_Mesh.AddVertexData(new_Verts);
-
-    //std::vector<WORD> new_Inds;
-    //for (int i = 0; i < 36; i++)
-    //{
-    //    new_Inds.emplace_back(g_Indicies[i]);
-    //}
-    //m_Mesh.AddIndexData(new_Inds);
-    //m_Mesh.CreateBuffers();
-
-    //m_meshes.emplace_back(m_Mesh);
-
 
     return true;
 }
@@ -408,6 +396,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
     auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
     auto commandList = commandQueue->GetCommandList();
+    ID3D12DescriptorHeap* pDescriptorHeaps[] = { Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetDescriptorHeap().Get()};
 
     UINT currentBackBufferIndex = m_pWindow->GetCurrentBackBufferIndex();
     auto backBuffer = m_pWindow->GetCurrentBackBuffer();
@@ -427,6 +416,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
     commandList->SetPipelineState(m_PipelineState.Get());
     commandList->SetGraphicsRootSignature(m_RootSignature.Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
@@ -462,6 +452,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, m_ViewMatrix);
         mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, m_ProjectionMatrix);
         commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix2, 0);
+        auto descriptorIndex = m_meshes[i].GetTextureList()["diffuse"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(1, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
     }

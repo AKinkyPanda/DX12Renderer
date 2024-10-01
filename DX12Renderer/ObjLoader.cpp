@@ -82,7 +82,7 @@ std::vector<Mesh> LoadObjModel(const std::string& filePath)
 				}
 
 				if (index.texcoord_index >= 0) {
-					//vertices[j].SetTextureCoordinated(GetUVData(attributes, index));
+					vertices[j].SetTexCoord(GetUVData(attributes, index));
 				}
 			}
 
