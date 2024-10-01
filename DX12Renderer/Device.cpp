@@ -1,5 +1,5 @@
 #include "Device.h"
-#include "DX12Renderer/Helpers.h"
+#include "Helpers.h"
 
 Device::Device()
 {

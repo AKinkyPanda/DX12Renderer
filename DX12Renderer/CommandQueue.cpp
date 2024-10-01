@@ -2,7 +2,7 @@
 #include "Helpers.h"
 #include <cassert>
 #include "d3dx12.h"
-#include "../DXAccess.h"
+#include "DXAccess.h"
 #include "Application.h"
 #include <iostream>
 

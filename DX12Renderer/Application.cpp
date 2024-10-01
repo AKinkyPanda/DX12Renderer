@@ -7,7 +7,7 @@
 
 #include <map>
 #include <cassert>
-#include "../DescriptorHeap.h"
+#include "DescriptorHeap.h"
 
 using namespace Microsoft::WRL;
 

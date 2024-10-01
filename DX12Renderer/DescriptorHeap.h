@@ -6,7 +6,7 @@ using namespace Microsoft::WRL;
 // DirectX 12 Specific headers
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include "DX12Renderer/d3dx12.h"
+#include "d3dx12.h"
 
 class Device;
 

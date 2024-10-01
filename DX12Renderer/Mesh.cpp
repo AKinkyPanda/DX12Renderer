@@ -1,9 +1,9 @@
 #include "Mesh.h"
 
 #include "Vertex.h"
-#include "DX12Renderer/d3dx12.h"
-#include "DX12Renderer/Helpers.h"
-#include "DX12Renderer/Application.h"
+#include "d3dx12.h"
+#include "Helpers.h"
+#include "Application.h"
 
 using namespace DirectX;
 

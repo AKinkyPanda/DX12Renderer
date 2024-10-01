@@ -1,8 +1,8 @@
 #include "DescriptorHeap.h"
 #include <cassert>
-#include "DX12Renderer/Helpers.h"
+#include "Helpers.h"
 #include "DXAccess.h"
-#include "DX12Renderer/Application.h"
+#include "Application.h"
 
 DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT amountOfDescriptors, bool isShaderVisible)
 {

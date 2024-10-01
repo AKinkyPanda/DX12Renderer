@@ -21,11 +21,11 @@ using namespace Microsoft::WRL;
 #if defined(max)
 #undef max
 #endif
-#include "../DXInternal.h"
-#include "../DXAccess.h"
-#include "../Mesh.h"
-#include "../DescriptorHeap.h"
-#include "../ObjLoader.h"
+#include "DXInternal.h"
+#include "DXAccess.h"
+#include "Mesh.h"
+#include "DescriptorHeap.h"
+#include "ObjLoader.h"
 
 using namespace DirectX;
 
@@ -166,16 +166,6 @@ bool Tutorial2::LoadContent()
     m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
     m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
     m_IndexBufferView.SizeInBytes = sizeof(g_Indicies);
-
-    // Mesh Test
-
-
-    //// Create the descriptor heap for the depth-stencil view.
-    //D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-    //dsvHeapDesc.NumDescriptors = 1;
-    //dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    //dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    //ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
 
     // Load the vertex shader.
     ComPtr<ID3DBlob> vertexShaderBlob;
@@ -373,8 +363,8 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
 
     // Update the model matrix.
     float angle2 = static_cast<float>(e.TotalTime * 1);
-    const XMVECTOR rotationAxis2 = XMVectorSet(0, 1, 1, 0);
-    m_TempModelMatrix = XMMatrixTranslation(0, 1000, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2));
+    const XMVECTOR rotationAxis2 = XMVectorSet(1, 0, 0, 0);
+    m_TempModelMatrix = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2)) * XMMatrixScaling(0.25, 0.25, 0.25);
 
     // Update the view matrix.
     const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
@@ -384,7 +374,7 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
 
     // Update the projection matrix.
     float aspectRatio = static_cast<float>(GetClientWidth()) / static_cast<float>(GetClientHeight());
-    m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
+    m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 1000.0f);
 }
 
 // Transition a resource

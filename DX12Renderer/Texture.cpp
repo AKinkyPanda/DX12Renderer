@@ -1,10 +1,10 @@
 #include "Texture.h"
-#include "DX12Renderer/d3dx12.h"
-#include "DX12Renderer/Helpers.h"
+#include "d3dx12.h"
+#include "Helpers.h"
 #include "DXAccess.h"
 #include "DescriptorHeap.h"
-#include "DX12Renderer/CommandQueue.h"
-#include "DX12Renderer/Application.h"
+#include "CommandQueue.h"
+#include "Application.h"
 
 
 struct Texture::TexData

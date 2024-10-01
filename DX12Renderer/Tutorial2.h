@@ -2,7 +2,7 @@
 
 #include "Game.h"
 #include "Window.h"
-#include "../Mesh.h"
+#include "Mesh.h"
 
 #include <DirectXMath.h>
 

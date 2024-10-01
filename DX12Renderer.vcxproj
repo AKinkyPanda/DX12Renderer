@@ -147,45 +147,45 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DescriptorHeap.cpp" />
-    <ClCompile Include="Device.cpp" />
     <ClCompile Include="DX12Renderer\Application.cpp" />
     <ClCompile Include="DX12Renderer\CommandQueue.cpp" />
+    <ClCompile Include="DX12Renderer\DescriptorHeap.cpp" />
+    <ClCompile Include="DX12Renderer\Device.cpp" />
     <ClCompile Include="DX12Renderer\Game.cpp" />
     <ClCompile Include="DX12Renderer\HighResolutionClock.cpp" />
     <ClCompile Include="DX12Renderer\main.cpp" />
+    <ClCompile Include="DX12Renderer\Material.cpp" />
+    <ClCompile Include="DX12Renderer\Mesh.cpp" />
+    <ClCompile Include="DX12Renderer\ObjLoader.cpp" />
+    <ClCompile Include="DX12Renderer\PipelineState.cpp" />
+    <ClCompile Include="DX12Renderer\Texture.cpp" />
     <ClCompile Include="DX12Renderer\Tutorial2.cpp" />
+    <ClCompile Include="DX12Renderer\Vertex.cpp" />
     <ClCompile Include="DX12Renderer\Window.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="ObjLoader.cpp" />
-    <ClCompile Include="PipelineState.cpp" />
-    <ClCompile Include="Texture.cpp" />
-    <ClCompile Include="Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DescriptorHeap.h" />
-    <ClInclude Include="Device.h" />
     <ClInclude Include="DX12Renderer\Application.h" />
     <ClInclude Include="DX12Renderer\CommandQueue.h" />
     <ClInclude Include="DX12Renderer\d3dx12.h" />
+    <ClInclude Include="DX12Renderer\DescriptorHeap.h" />
+    <ClInclude Include="DX12Renderer\Device.h" />
+    <ClInclude Include="DX12Renderer\DXAccess.h" />
+    <ClInclude Include="DX12Renderer\DXInternal.h" />
     <ClInclude Include="DX12Renderer\Events.h" />
     <ClInclude Include="DX12Renderer\Game.h" />
     <ClInclude Include="DX12Renderer\Helpers.h" />
     <ClInclude Include="DX12Renderer\HighResolutionClock.h" />
     <ClInclude Include="DX12Renderer\KeyCodes.h" />
+    <ClInclude Include="DX12Renderer\Material.h" />
+    <ClInclude Include="DX12Renderer\Mesh.h" />
+    <ClInclude Include="DX12Renderer\ObjLoader.h" />
+    <ClInclude Include="DX12Renderer\PipelineState.h" />
     <ClInclude Include="DX12Renderer\stb_image.h" />
+    <ClInclude Include="DX12Renderer\Texture.h" />
     <ClInclude Include="DX12Renderer\tiny_obj_loader.h" />
     <ClInclude Include="DX12Renderer\Tutorial2.h" />
+    <ClInclude Include="DX12Renderer\Vertex.h" />
     <ClInclude Include="DX12Renderer\Window.h" />
-    <ClInclude Include="DXAccess.h" />
-    <ClInclude Include="DXInternal.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="ObjLoader.h" />
-    <ClInclude Include="PipelineState.h" />
-    <ClInclude Include="Texture.h" />
-    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DX12Renderer\PixelShader.hlsl">

@@ -1,9 +1,9 @@
 #include "ObjLoader.h"
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "DX12Renderer/tiny_obj_loader.h"
+#include "tiny_obj_loader.h"
 #include "Mesh.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "DX12Renderer/stb_image.h"
+#include "stb_image.h"
 #include <vector>
 #include <string>
 #include <fstream>
