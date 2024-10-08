@@ -6,6 +6,7 @@
 #include "PipelineState.h"
 
 #include <DirectXMath.h>
+#include "../Camera.h"
 
 class Mesh;
 
@@ -44,6 +45,10 @@ protected:
      * while the window has focus.
      */
     virtual void OnKeyPressed(KeyEventArgs& e) override;
+
+    virtual void OnKeyReleased(KeyEventArgs& e) override;
+
+    virtual void OnMouseMoved(MouseMotionEventArgs& e) override;
 
     /**
      * Invoked when the mouse wheel is scrolled while the registered window has focus.
@@ -107,7 +112,35 @@ private:
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT m_ScissorRect;
 
+    Camera m_Camera;
+    struct alignas(16) CameraData
+    {
+        DirectX::XMVECTOR m_InitialCamPos;
+        DirectX::XMVECTOR m_InitialCamRot;
+    };
+    CameraData* m_pAlignedCameraData;
+
     float m_FoV;
+
+    int  m_Width;
+    int  m_Height;
+
+    // Camera controller
+    float m_Forward;
+    float m_Backward;
+    float m_Left;
+    float m_Right;
+    float m_Up;
+    float m_Down;
+
+    float m_Pitch;
+    float m_Yaw;
+    int m_PreviousMouseX;
+    int m_PreviousMouseY;
+
+    bool m_Shift;
+    bool g_AllowFullscreenToggle;
+    bool m_VSync;
 
     DirectX::XMMATRIX m_ModelMatrix;
     DirectX::XMMATRIX m_ViewMatrix;

@@ -147,6 +147,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DX12Renderer\Application.cpp" />
     <ClCompile Include="DX12Renderer\CommandQueue.cpp" />
     <ClCompile Include="DX12Renderer\DescriptorHeap.cpp" />
@@ -164,6 +165,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="DX12Renderer\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="DX12Renderer\Application.h" />
     <ClInclude Include="DX12Renderer\CommandQueue.h" />
     <ClInclude Include="DX12Renderer\d3dx12.h" />

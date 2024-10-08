@@ -42,13 +42,16 @@ class MouseMotionEventArgs : public EventArgs
 public:
     typedef EventArgs base;
     MouseMotionEventArgs(bool leftButton, bool middleButton, bool rightButton, bool control, bool shift, int x, int y)
-        : LeftButton(leftButton)
+        : base()
+        , LeftButton(leftButton)
         , MiddleButton(middleButton)
         , RightButton(rightButton)
         , Control(control)
         , Shift(shift)
         , X(x)
         , Y(y)
+        , RelX(0)
+        , RelY(0)
     {}
 
     bool LeftButton;    // Is the left mouse button down?

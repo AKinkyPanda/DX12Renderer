@@ -62,9 +62,36 @@ Tutorial2::Tutorial2(const std::wstring& name, int width, int height, bool vSync
     : super(name, width, height, vSync)
     , m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
     , m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
+    , m_Camera()
+    , m_Forward(0)
+    , m_Backward(0)
+    , m_Left(0)
+    , m_Right(0)
+    , m_Up(0)
+    , m_Down(0)
+    , m_Pitch(0)
+    , m_Yaw(0)
+    , m_PreviousMouseX(0)
+    , m_PreviousMouseY(0)
     , m_FoV(45.0)
+    , m_Shift(false)
+    , m_Width(width)
+    , m_Height(height)
+    , m_VSync(vSync)
     , m_ContentLoaded(false)
 {
+    XMVECTOR cameraPos = DirectX::XMVectorSet(15, 135, -10, 1);
+    XMVECTOR cameraTarget = DirectX::XMVectorSet(1000, 0, 0, 1);
+    XMVECTOR cameraUp = DirectX::XMVectorSet(0, 1, 0, 1);
+
+    m_Yaw = -90;
+
+    m_Camera.set_LookAt(cameraPos, cameraTarget, cameraUp);
+
+    m_pAlignedCameraData = (CameraData*)_aligned_malloc(sizeof(CameraData), 16);
+
+    m_pAlignedCameraData->m_InitialCamPos = m_Camera.get_Translation();
+    m_pAlignedCameraData->m_InitialCamRot = m_Camera.get_Rotation();
 }
 
 void Tutorial2::UpdateBufferResource(
@@ -139,91 +166,6 @@ bool Tutorial2::LoadContent()
 
     m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
-    /*
-    // Load the vertex shader.
-    ComPtr<ID3DBlob> vertexShaderBlob;
-    ThrowIfFailed(D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob));
-
-    // Load the pixel shader.
-    ComPtr<ID3DBlob> pixelShaderBlob;
-    ThrowIfFailed(D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob));
-
-    // Create the vertex input layout
-    D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    };
-
-    // Create a root signature.
-    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-    featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-    if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-    {
-        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-    }
-
-    // Allow input layout and deny unnecessary access to certain pipeline stages.
-    D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-    CD3DX12_DESCRIPTOR_RANGE1 descRange[1];
-    descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // Bind to t0
-
-    // A single 32-bit constant root parameter that is used by the vertex shader.
-    CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-    rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-    rootParameters[1].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-
-    CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
-
-    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-    rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &sampler, rootSignatureFlags);
-
-    // Serialize the root signature.
-    ComPtr<ID3DBlob> rootSignatureBlob;
-    ComPtr<ID3DBlob> errorBlob;
-    ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
-        featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
-    // Create the root signature.
-    ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
-        rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
-
-    struct PipelineStateStream
-    {
-        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-    } pipelineStateStream;
-
-    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-    rtvFormats.NumRenderTargets = 1;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-    pipelineStateStream.pRootSignature = m_RootSignature.Get();
-    pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
-    pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
-    pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
-    pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-    pipelineStateStream.RTVFormats = rtvFormats;
-
-    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
-        sizeof(PipelineStateStream), &pipelineStateStream
-    };
-    ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
-
-    auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-    commandQueue->WaitForFenceValue(fenceValue);*/
-
     m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
     m_ContentLoaded = true;
@@ -287,6 +229,12 @@ void Tutorial2::OnResize(ResizeEventArgs& e)
         m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
             static_cast<float>(e.Width), static_cast<float>(e.Height));
 
+        m_Width = std::max(1, e.Width);
+        m_Height = std::max(1, e.Height);
+
+        float aspectRatio = m_Width / (float)m_Height;
+        m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 10000.0f);
+
         ResizeDepthBuffer(e.Width, e.Height);
     }
 }
@@ -318,20 +266,37 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
         totalTime = 0.0;
     }
 
+    // Update the camera.
+    float speedMultipler = (m_Shift ? 200.0f : 100.0f);
+
+    XMVECTOR cameraTranslate = DirectX::XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler *
+        static_cast<float>(e.ElapsedTime);
+    XMVECTOR cameraPan =
+        DirectX::XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * static_cast<float>(e.ElapsedTime);
+    m_Camera.Translate(cameraTranslate, Space::Local);
+    m_Camera.Translate(cameraPan, Space::Local);
+
+    XMVECTOR cameraRotation =
+        DirectX::XMQuaternionRotationRollPitchYaw(XMConvertToRadians(m_Pitch), XMConvertToRadians(m_Yaw), 0.0f);
+    m_Camera.set_Rotation(cameraRotation);
+
+    XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
+
     // Update the model matrix.
     float angle = static_cast<float>(e.TotalTime * 90.0);
-    const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
+    const XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
     m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
     // Update the model matrix.
-    float angle2 = static_cast<float>(0.001);
-    const XMVECTOR rotationAxis2 = XMVectorSet(0, 1, 0, 0);
-    m_TempModelMatrix = XMMatrixTranslation(0, -25, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2)) * XMMatrixScaling(0.25, 0.25, 0.25);
+    float angle2 = static_cast<float>(90);
+    const XMVECTOR rotationAxis2 = DirectX::XMVectorSet(-1, 0, 0, 0);
+    //m_TempModelMatrix = XMMatrixTranslation(0, -25, 0) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2)) * XMMatrixScaling(0.25, 0.25, 0.25);
+    m_TempModelMatrix = XMMatrixScaling(0.25, 0.25, 0.25) * XMMatrixRotationAxis(rotationAxis2, XMConvertToRadians(angle2));
 
     // Update the view matrix.
-    const XMVECTOR eyePosition = XMVectorSet(0, -50, 150, 1);
-    const XMVECTOR focusPoint = XMVectorSet(0, 150, 0, 1);
-    const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+    const XMVECTOR eyePosition = DirectX::XMVectorSet(0, -50, 150, 1);
+    const XMVECTOR focusPoint = DirectX::XMVectorSet(0, 150, 0, 1);
+    const XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
     m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
     // Update the projection matrix.
@@ -388,6 +353,9 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         ClearDepth(commandList, dsv);
     }
 
+    XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
+    XMMATRIX projectionMatrix = m_Camera.get_ProjectionMatrix();
+
     // Test Meshes
     for (int i = 0; i < m_meshes.size(); i++) {
         commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
@@ -404,8 +372,11 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
         // Update the MVP matrix
-        XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, m_ViewMatrix);
-        mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, m_ProjectionMatrix);
+        //XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, m_ViewMatrix);
+        //mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, m_ProjectionMatrix);
+
+        XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, viewMatrix);
+        mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, projectionMatrix);
         commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix2, 0);
         auto descriptorIndex = m_meshes[i].GetTextureList()["diffuse"]->m_descriptorIndex;
         commandList->SetGraphicsRootDescriptorTable(1, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
@@ -446,6 +417,100 @@ void Tutorial2::OnKeyPressed(KeyEventArgs& e)
     case KeyCode::V:
         m_pWindow->ToggleVSync();
         break;
+    case KeyCode::R:
+        // Reset camera transform
+        m_Camera.set_Translation(m_pAlignedCameraData->m_InitialCamPos);
+        m_Camera.set_Rotation(m_pAlignedCameraData->m_InitialCamRot);
+        m_Pitch = 0.0f;
+        m_Yaw = 0.0f;
+        break;
+    case KeyCode::Up:
+    case KeyCode::W:
+        m_Forward = 1.0f;
+        break;
+    case KeyCode::Left:
+    case KeyCode::A:
+        m_Left = 1.0f;
+        break;
+    case KeyCode::Down:
+    case KeyCode::S:
+        m_Backward = 1.0f;
+        break;
+    case KeyCode::Right:
+    case KeyCode::D:
+        m_Right = 1.0f;
+        break;
+    case KeyCode::Q:
+        m_Down = 1.0f;
+        break;
+    case KeyCode::E:
+        m_Up = 1.0f;
+        break;
+    case KeyCode::ShiftKey:
+        m_Shift = true;
+        break;
+    }
+}
+
+void Tutorial2::OnKeyReleased(KeyEventArgs& e)
+{
+    switch (e.Key)
+    {
+    case KeyCode::Enter:
+        if (e.Alt)
+        {
+    case KeyCode::F11:
+        g_AllowFullscreenToggle = true;
+        }
+        break;
+    case KeyCode::Up:
+    case KeyCode::W:
+        m_Forward = 0.0f;
+        break;
+    case KeyCode::Left:
+    case KeyCode::A:
+        m_Left = 0.0f;
+        break;
+    case KeyCode::Down:
+    case KeyCode::S:
+        m_Backward = 0.0f;
+        break;
+    case KeyCode::Right:
+    case KeyCode::D:
+        m_Right = 0.0f;
+        break;
+    case KeyCode::Q:
+        m_Down = 0.0f;
+        break;
+    case KeyCode::E:
+        m_Up = 0.0f;
+        break;
+    case KeyCode::ShiftKey:
+        m_Shift = false;
+        break;
+    }
+}
+
+void Tutorial2::OnMouseMoved(MouseMotionEventArgs& e)
+{
+    const float mouseSpeed = 0.1f;
+
+    e.RelX = e.X - m_PreviousMouseX;
+    e.RelY = e.Y - m_PreviousMouseY;
+
+    m_PreviousMouseX = e.X;
+    m_PreviousMouseY = e.Y;
+
+    //if (!ImGui::GetIO().WantCaptureMouse)
+    {
+        if (e.LeftButton)
+        {
+            m_Pitch -= e.RelY * mouseSpeed;
+
+            m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
+
+            m_Yaw -= e.RelX * mouseSpeed;
+        }
     }
 }
 
@@ -453,6 +518,13 @@ void Tutorial2::OnMouseWheel(MouseWheelEventArgs& e)
 {
     m_FoV -= e.WheelDelta;
     m_FoV = clamp(m_FoV, 12.0f, 90.0f);
+
+    auto fov = m_Camera.get_FoV();
+
+    fov -= e.WheelDelta;
+    fov = std::clamp(fov, 12.0f, 90.0f);
+
+    m_Camera.set_FoV(fov);
 
     char buffer[256];
     sprintf_s(buffer, "FoV: %f\n", m_FoV);
