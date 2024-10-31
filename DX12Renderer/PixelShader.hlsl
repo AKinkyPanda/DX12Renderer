@@ -14,25 +14,9 @@ struct PointLight
     //----------------------------------- (16 byte boundary)
     float4 Color;
     //----------------------------------- (16 byte boundary)
-    float  ConstantAttenuation;
-    float  LinearAttenuation;
-    float  QuadraticAttenuation;
-    float  Padding;
-    //----------------------------------- (16 byte boundary)
-    // Total:                              16 * 4 = 64 bytes
-};
-
-struct PointLightDos
-{
-    float4    PositionWS; // Light position in world space.
-    //----------------------------------- (16 byte boundary)
-    float4    PositionVS; // Light position in view space.
-    //----------------------------------- (16 byte boundary)
-    float4    Color;
-    //----------------------------------- (16 byte boundary)
     float       Intensity;
     float       Attenuation;
-    float       Padding[2];             // Pad to 16 bytes.
+    float2      Padding;                // Pad to 16 bytes
     //----------------------------------- (16 byte boundary)
     // Total:                              16 * 4 = 64 bytes
 };
@@ -49,10 +33,10 @@ struct SpotLight
     //----------------------------------- (16 byte boundary)
     float4 Color;
     //----------------------------------- (16 byte boundary)
-    float  SpotAngle;
-    float  ConstantAttenuation;
-    float  LinearAttenuation;
-    float  QuadraticAttenuation;
+    float       Intensity;
+    float       SpotAngle;
+    float       Attenuation;
+    float       Padding;                // Pad to 16 bytes.
     //----------------------------------- (16 byte boundary)
     // Total:                              16 * 6 = 96 bytes
 };
@@ -124,13 +108,12 @@ float DoSpecular( float3 V, float3 N, float3 L )
     float3 R = normalize( reflect( -L, N ) );
     float RdotV = max( 0, dot( R, V ) );
 
-    //return pow( RdotV, MaterialCB.SpecularPower );
-    return pow( RdotV, 10.f );
+    return pow( RdotV, 10 );
 }
 
-float DoAttenuation( float c, float l, float q, float d )
+float DoAttenuation( float attenuation, float distance )
 {
-    return 1.0f / ( c + l * d + q * d * d );
+    return 1.0f / ( 1.0f + attenuation * distance * distance );
 }
 
 float DoSpotCone( float3 spotDir, float3 L, float spotAngle )
@@ -148,13 +131,10 @@ LightResult DoPointLight( PointLight light, float3 V, float3 P, float3 N )
     float d = length( L );
     L = L / d;
 
-    float attenuation = DoAttenuation( 1,
-                                       0.08f,
-                                       0,
-                                       d );
+    float attenuation = DoAttenuation( light.Attenuation, d );
 
-    result.Diffuse = DoDiffuse( N, L ) * attenuation * light.Color;
-    result.Specular = DoSpecular( V, N, L ) * attenuation * light.Color;
+    result.Diffuse = DoDiffuse( N, L ) * attenuation * light.Color * light.Intensity;
+    result.Specular = DoSpecular( V, N, L ) * attenuation * light.Color * light.Intensity;
 
     return result;
 }
@@ -166,15 +146,12 @@ LightResult DoSpotLight( SpotLight light, float3 V, float3 P, float3 N )
     float d = length( L );
     L = L / d;
 
-    float attenuation = DoAttenuation( light.ConstantAttenuation,
-                                       light.LinearAttenuation,
-                                       light.QuadraticAttenuation,
-                                       d );
+    float attenuation = DoAttenuation( light.Attenuation, d );
 
     float spotIntensity = DoSpotCone( light.DirectionVS.xyz, L, light.SpotAngle );
 
-    result.Diffuse = DoDiffuse( N, L ) * attenuation * spotIntensity * light.Color;
-    result.Specular = DoSpecular( V, N, L ) * attenuation * spotIntensity * light.Color;
+    result.Diffuse = DoDiffuse( N, L ) * attenuation * spotIntensity * light.Color * light.Intensity;
+    result.Specular = DoSpecular( V, N, L ) * attenuation * spotIntensity * light.Color * light.Intensity;
 
     return result;
 }
@@ -204,8 +181,8 @@ LightResult DoLighting( float3 P, float3 N )
         totalResult.Specular += result.Specular;
     }
 
-    totalResult.Diffuse = saturate( totalResult.Diffuse );
-    totalResult.Specular = saturate( totalResult.Specular );
+    //totalResult.Diffuse = saturate( totalResult.Diffuse );
+    //totalResult.Specular = saturate( totalResult.Specular );
 
     return totalResult;
 }
@@ -213,84 +190,15 @@ LightResult DoLighting( float3 P, float3 N )
 PixelOutput main(PixelShaderInput IN) : SV_Target0
 {
     PixelOutput OUT;
-    float4 color = Diffuse.Sample(Sampler, IN.UV);
-    float4 ambient = 0.05 * color;
 
-    // diffuse
-    float3 lightDir = normalize(float4(15, 135, -10, 1) - IN.FragPos);
-    float3 normal = normalize(IN.Normal);
-    float diff = max(dot(lightDir, normal), 0.0);
-    float3 diffuse = diff * color;
-    // specular
-    float3 viewDir = normalize(IN.Position.xyz - IN.FragPos);
-    float spec = 0.0;
+    LightResult lit = DoLighting( IN.Position.xyz, normalize( IN.Normal ) );
 
-    float3 reflectDir = reflect(-lightDir, normal);
-    spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
+    float4 emissive = float4(0, 0, 0, 1);
+    float4 ambient = float4(0.1, 0.1, 0.1, 1);
+    float4 diffuse = float4(0.58, 0.58, 0.58, 1) * lit.Diffuse;
+    float4 specular = float4(1, 1, 1, 1) * lit.Specular;
+    float4 texColor = Diffuse.Sample( Sampler, IN.UV );
 
-    float3 specular = float3(0.3, 0.3, 0.3) * spec; // assuming bright white light color
-    OUT.Color = float4(ambient + diffuse + specular, 1.0);
-    return OUT;
-
-
-
-
-
-
-    //float4 albedo = Diffuse.Sample(Sampler, IN.UV);
-    //OUT.Color = albedo;
-
-	//return OUT;
-
-    //LightResult lit = DoLighting( IN.Position.xyz, normalize( IN.Normal ) );
-
-    //float4 diffuse = lit.Diffuse;
-    //float4 specular = lit.Specular;
-    //float4 texColor = Diffuse.Sample( Sampler, IN.UV );
-
-    //OUT.Color = float4( IN.UV, 0, 0 );
-    //OUT.Color = texColor;
-    //OUT.Color = ( diffuse + specular ) * texColor;
-    //return OUT;
-
-    // Sample the texture for the base color
-    float4 baseColor = Diffuse.Sample(Sampler, IN.UV);
-
-    // Normalize normal and view direction
-    //float3 normal = normalize(IN.Normal);
-    //float3 viewDir = normalize(-IN.Position.xyz); // Assuming camera at origin
-
-    // Accumulate light results
-    float4 finalColor = baseColor;
-    float3 lighting = float3(0, 0, 0);
-
-    // Process Point Lights
-    for (uint i = 0; i < LightPropertiesDelta.NumPointLights; ++i)
-    {
-        PointLight light = PointLights[i];
-        float3 lightDir = normalize(light.PositionWS - IN.FragPos);
-        //finalColor += CalculateBlinnPhong(normal, lightDir, viewDir, light.Color.rgb, light.Intensity);
-        lighting += CalculateBlinnPhong(normal, lightDir, viewDir, light.Color.rgb, 1).rgb;
-    }
-
-    // Process Spot Lights (similar structure to point lights, if applicable)
-    for (uint i = 0; i < LightPropertiesDelta.NumSpotLights; ++i)
-    {
-        SpotLight light = SpotLights[i];
-        float3 lightDir = normalize(light.PositionWS - IN.FragPos);
-
-        // Spot angle calculation (if needed)
-        float theta = dot(lightDir, normalize(light.DirectionWS));
-        if (theta > light.SpotAngle)  // only apply within cone
-        {
-            finalColor += CalculateBlinnPhong(normal, lightDir, viewDir, light.Color.rgb, 1);
-            lighting += CalculateBlinnPhong(normal, lightDir, viewDir, light.Color.rgb, 1).rgb;
-        }
-    }
-
-    // Apply base color and return
-    finalColor *= baseColor;
-    finalColor = float4(baseColor.rgb * lighting, 1.0f);
-    OUT.Color = finalColor;
+    OUT.Color = ( emissive + ambient + diffuse + specular ) * texColor;
     return OUT;
 }
