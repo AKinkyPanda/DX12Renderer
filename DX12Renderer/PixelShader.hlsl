@@ -191,7 +191,10 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
 {
     PixelOutput OUT;
 
-    LightResult lit = DoLighting( IN.Position.xyz, normalize( IN.Normal ) );
+    LightResult lit = DoLighting( IN.FragPos.xyz, normalize( IN.Normal ) );
+
+    //lit.Diffuse = float4(0, 0, 0, 1);
+    //lit.Specular = float4(0, 0, 0, 1);
 
     float4 emissive = float4(0, 0, 0, 1);
     float4 ambient = float4(0.1, 0.1, 0.1, 1);

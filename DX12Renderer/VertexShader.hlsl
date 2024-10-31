@@ -1,14 +1,15 @@
-// Structure to hold the Model-View-Projection matrix
-struct ModelViewProjection
+struct Mat
 {
-    float4x4 MVP;  // Use float4x4 for the MVP matrix
+    matrix ModelMatrix;
+    matrix ModelViewMatrix;
+    matrix InverseTransposeModelViewMatrix;
+    matrix ModelViewProjectionMatrix;
 };
 
-// Declare the constant buffer
-cbuffer ModelViewProjectionCB : register(b0)
+cbuffer MatCB : register(b0)
 {
-    float4x4 MVP;  // Actual MVP matrix stored in the constant buffer
-};
+    Mat Matrices;
+}
 
 //ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
 
@@ -31,11 +32,10 @@ VertexShaderOutput main(VertexPosColor IN)
 {
     VertexShaderOutput OUT;
 
-    OUT.Position = mul(MVP, float4(IN.Position, 1.0f));
-    OUT.Normal = float4(IN.Normal, 1.0f);
-    OUT.UV = IN.TexCoord;  // Forward texture coordinates
-    float3 frag = mul(MVP, float4(IN.Position, 0.0f));
-	OUT.FragPos = frag;
+    OUT.Position = mul( Matrices.ModelViewProjectionMatrix, float4(IN.Position, 1.0f));
+    OUT.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, IN.Normal), 1.0f);
+    OUT.UV = IN.TexCoord;
+    OUT.FragPos = mul( Matrices.ModelViewMatrix, float4(IN.Position, 1.0f));
 
     return OUT;
 }

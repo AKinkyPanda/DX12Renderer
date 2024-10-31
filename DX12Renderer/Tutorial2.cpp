@@ -107,8 +107,9 @@ Tutorial2::Tutorial2(const std::wstring& name, int width, int height, bool vSync
     , m_VSync(vSync)
     , m_ContentLoaded(false)
 {
-    XMVECTOR cameraPos = DirectX::XMVectorSet(15, 135, -10, 1);
-    XMVECTOR cameraTarget = DirectX::XMVectorSet(35, 135, -10, 1);
+    XMVECTOR cameraPos = DirectX::XMVectorSet(15, 500, -10, 1);
+    //XMVECTOR cameraPos = DirectX::XMVectorSet(0, 0, 0, 1);
+    XMVECTOR cameraTarget = DirectX::XMVectorSet(35, 500, -10, 1);
     XMVECTOR cameraUp = DirectX::XMVectorSet(0, 1, 0, 1);
 
     m_Camera.set_LookAt(cameraPos, cameraTarget, cameraUp);
@@ -308,8 +309,8 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
         static_cast<float>(e.ElapsedTime);
     XMVECTOR cameraPan =
         DirectX::XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * static_cast<float>(e.ElapsedTime);
-    m_Camera.Translate(cameraTranslate, Space::Local);
-    m_Camera.Translate(cameraPan, Space::Local);
+    m_Camera.Translate(cameraTranslate, Space::World);
+    m_Camera.Translate(cameraPan, Space::World);
 
     XMVECTOR cameraRotation =
         DirectX::XMQuaternionRotationRollPitchYaw(XMConvertToRadians(m_Pitch), XMConvertToRadians(m_Yaw), XMConvertToRadians(0.0f));
@@ -337,8 +338,8 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     float aspectRatio = static_cast<float>(GetClientWidth()) / static_cast<float>(GetClientHeight());
     m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 1000.0f);
 
-    const int numPointLights = 4;
-    const int numSpotLights = 4;
+    const int numPointLights = 1;
+    const int numSpotLights = 0;
 
     static const XMVECTORF32 LightColors[] = { Colors::White, Colors::Orange, Colors::Yellow, Colors::Green,
                                                Colors::Blue,  Colors::Indigo, Colors::Violet, Colors::White };
@@ -416,6 +417,21 @@ void Tutorial2::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> co
     D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
 {
     commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+}
+
+template<typename T>
+void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, const T& data, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandListData, UploadBuffer* uploadBuffer)
+{
+    SetGraphicsDynamicConstantBufferInternal(rootParameterIndex, sizeof(T), &data, commandListData, uploadBuffer);
+}
+
+void SetGraphicsDynamicConstantBufferInternal(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandListData, UploadBuffer* uploadBuffer)
+{
+    // Constant buffers must be 256-byte aligned.
+    auto heapAllococation = uploadBuffer->Allocate(sizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+    memcpy(heapAllococation.CPU, bufferData, sizeInBytes);
+
+    commandListData->SetGraphicsRootConstantBufferView(rootParameterIndex, heapAllococation.GPU);
 }
 
 template<typename T>
@@ -506,9 +522,22 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         //commandQueue->SetShaderResourceView(RootParameters::Textures, 0, m_EarthTexture,
         //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-        XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, viewMatrix);
-        mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, projectionMatrix);
-        commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix2, 0);
+        // Draw the earth sphere
+        XMMATRIX translationMatrix = XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        //XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
+        XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
+
+        Mat matrices;
+        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+
+        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+        //XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, viewMatrix);
+        //mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, projectionMatrix);
+        //commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix2, 0);
 
         LightProperties lightProps;
         lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());

@@ -30,7 +30,7 @@ void XM_CALLCONV Camera::set_LookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR u
     pData->m_Rotation = XMQuaternionRotationMatrix(DirectX::XMMatrixTranspose(pData->m_ViewMatrix));
 
     m_InverseViewDirty = true;
-    m_ViewDirty = false;
+    m_ViewDirty = false;    
 }
 
 XMMATRIX Camera::get_ViewMatrix() const
