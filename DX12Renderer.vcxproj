@@ -163,9 +163,13 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="DX12Renderer\Tutorial2.cpp" />
     <ClCompile Include="DX12Renderer\Vertex.cpp" />
     <ClCompile Include="DX12Renderer\Window.cpp" />
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Defines.h" />
+    <ClInclude Include="DirectXColors.h" />
     <ClInclude Include="DX12Renderer\Application.h" />
     <ClInclude Include="DX12Renderer\CommandQueue.h" />
     <ClInclude Include="DX12Renderer\d3dx12.h" />
@@ -188,6 +192,8 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="DX12Renderer\Tutorial2.h" />
     <ClInclude Include="DX12Renderer\Vertex.h" />
     <ClInclude Include="DX12Renderer\Window.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DX12Renderer\PixelShader.hlsl">

@@ -124,7 +124,8 @@ XMFLOAT3 GetPositionData(const tinyobj::attrib_t& attributes, const tinyobj::ind
 	vertexData.y = attributes.vertices[POSITION_SIZE * static_cast<size_t>(index.vertex_index) + 1];
 	vertexData.z = attributes.vertices[POSITION_SIZE * static_cast<size_t>(index.vertex_index) + 2];
 
-	return CoordinateSpaceConversion(vertexData);
+	return vertexData;
+	//return CoordinateSpaceConversion(vertexData);
 }
 
 XMFLOAT3 CoordinateSpaceConversion(const XMFLOAT3& _xyzVector)
@@ -173,7 +174,8 @@ const Texture* LoadTexture(const std::string& filePath)
 
 	if (textureInMap == m_textures.end())
 	{
-		if (DoesFileExist("D:/Git/DX12Renderer/Assets/Models/crytek-sponza/" + filePath))
+		// Go to project settings and fix this !!!
+		if (DoesFileExist("../../Assets/Models/crytek-sponza/" + filePath))
 		{
 			int width, height, channels = 0;
 			std::vector<uint8_t> buffer = ReadBinaryFile("D:/Git/DX12Renderer/Assets/Models/crytek-sponza/" + filePath);

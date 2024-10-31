@@ -7,6 +7,8 @@
 #include "d3dx12.h"
 #include "Helpers.h"
 #include "Application.h"
+#include "Tutorial2.h"
+#include "Vertex.h"
 
 using namespace DirectX;
 
@@ -56,19 +58,51 @@ void PipelineState::CreateRootSignature()
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 	}
 
-	CD3DX12_DESCRIPTOR_RANGE1 descRange[1];
-	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	// Create a root signature.
+// Allow input layout and deny unnecessary access to certain pipeline stages.
+	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[2];
+	CD3DX12_DESCRIPTOR_RANGE1 descRange[1];
+	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+
+	CD3DX12_ROOT_PARAMETER1 rootParameter[5];
 	rootParameter[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
-	//rootParameter[1].InitAsConstants(5, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[1].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-	//rootParameter[2].InitAsConstants(3, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[1].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[2].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[4].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init_1_1(_countof(rootParameter), rootParameter, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init_1_1(_countof(rootParameter), rootParameter, 1, &sampler, rootSignatureFlags);
+	
+
+	//CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+
+	//CD3DX12_ROOT_PARAMETER1 rootParameters[RootParameters::NumRootParameters];
+	//rootParameters[RootParameters::MatricesCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+	//	D3D12_SHADER_VISIBILITY_VERTEX);
+	//rootParameters[RootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+	//	D3D12_SHADER_VISIBILITY_PIXEL);
+	//rootParameters[RootParameters::LightPropertiesCB].InitAsConstants(sizeof(LightProperties) / 4, 1, 0,
+	//	D3D12_SHADER_VISIBILITY_PIXEL);
+	//rootParameters[RootParameters::PointLights].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+	//	D3D12_SHADER_VISIBILITY_PIXEL);
+	//rootParameters[RootParameters::SpotLights].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+	//	D3D12_SHADER_VISIBILITY_PIXEL);
+	//rootParameters[RootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange,
+	//	D3D12_SHADER_VISIBILITY_PIXEL);
+
+	//CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
+	//CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
+
+	//CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
+	//rootSignatureDescription.Init_1_1(RootParameters::NumRootParameters, rootParameters, 1, &linearRepeatSampler,
+	//	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signatureBlob;
 	ComPtr<ID3DBlob> errorBlob;
@@ -120,6 +154,7 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 	rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
 	pipelineStateStream.pRootSignature = m_rootSignature.Get();
+	//pipelineStateStream.InputLayout = VertexPositionNormalTangentBitangentTexture::InputLayout;
 	pipelineStateStream.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 	pipelineStateStream.PrimitiveTopologyType = type;
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());

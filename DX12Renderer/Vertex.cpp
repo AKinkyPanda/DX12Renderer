@@ -24,17 +24,41 @@ void Vertex::SetTextureCoordinated(const DirectX::XMFLOAT2& texCoord)
 	TexCoord = texCoord;
 }
 
-DirectX::XMFLOAT3 Vertex::GetPosition() const
+XMFLOAT3 Vertex::GetPosition() const
 {
 	return Position;
 }
 
-DirectX::XMFLOAT3 Vertex::GetNormal() const
+XMFLOAT3 Vertex::GetNormal() const
 {
 	return Normal;
 }
 
-DirectX::XMFLOAT2 Vertex::GetTextureCoordinates() const
+XMFLOAT2 Vertex::GetTextureCoordinates() const
 {
 	return TexCoord;
 }
+
+// clang-format off
+const D3D12_INPUT_ELEMENT_DESC VertexPosition::InputElements[] = {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+};
+
+const D3D12_INPUT_LAYOUT_DESC VertexPosition::InputLayout = {
+    VertexPosition::InputElements,
+    VertexPosition::InputElementCount
+};
+
+const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTangentBitangentTexture::InputElements[] = {
+    { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+};
+
+const D3D12_INPUT_LAYOUT_DESC VertexPositionNormalTangentBitangentTexture::InputLayout = {
+    VertexPositionNormalTangentBitangentTexture::InputElements,
+    VertexPositionNormalTangentBitangentTexture::InputElementCount
+};
+// clang-format on

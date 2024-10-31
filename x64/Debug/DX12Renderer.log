@@ -1,2 +1,18 @@
-﻿  Tutorial2.cpp
+﻿D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(91,28-35): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(91,28-40): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(95,28-35): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(95,28-40): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(99,29-36): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(99,29-41): warning X3081: comma expression used where a vector constructor may have been intended
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(220,33-68): warning X3206: implicit truncation of vector type
+  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\PixelShader.cso
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(221,12-40): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(223,12-33): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(232,24-40): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(271,37-65): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(277,15): warning X3078: 'i': loop control variable conflicts with a previous declaration in the outer scope; most recent declaration will be used
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(280,37-65): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(283,23-65): warning X3206: 'dot': implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(213,16-50): warning X3576: semantics in type overridden by variable/function or enclosing type
+  
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe
