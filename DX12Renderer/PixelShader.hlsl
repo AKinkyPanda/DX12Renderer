@@ -135,7 +135,7 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
-    float3 F0 = float3(10, 10, 10); 
+    float3 F0 = float3(0.04, 0.04, 0.04); 
     F0 = lerp(F0, albedo, metallic);
 
     // reflectance equation
