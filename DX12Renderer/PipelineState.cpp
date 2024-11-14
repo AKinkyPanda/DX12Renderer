@@ -65,14 +65,15 @@ void PipelineState::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	CD3DX12_DESCRIPTOR_RANGE1 descRange[5];
+	CD3DX12_DESCRIPTOR_RANGE1 descRange[6];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
 	descRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
 	descRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
 	descRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
+	descRange[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[10];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[11];
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 	rootParameter[1].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[2].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -83,6 +84,7 @@ void PipelineState::CreateRootSignature()
 	rootParameter[7].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[8].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[9].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[10].InitAsDescriptorTable(1, &descRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
@@ -145,6 +147,7 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
+		CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC Blend;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
@@ -159,6 +162,16 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
+	CD3DX12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
 	CD3DX12_RASTERIZER_DESC rasterizer{ CD3DX12_DEFAULT() };
 	rasterizer.FrontCounterClockwise = TRUE;
 	rasterizer.CullMode = D3D12_CULL_MODE_NONE;
@@ -170,6 +183,7 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());
 	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(m_pixelShader.Get());
 	pipelineStateStream.DepthStencil = depthStencilDesc;
+	pipelineStateStream.Blend = blendDesc;
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineStateStream.RTVFormats = rtvFormats;
 	pipelineStateStream.Rasterizer = rasterizer;

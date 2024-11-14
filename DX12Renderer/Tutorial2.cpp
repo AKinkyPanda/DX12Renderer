@@ -195,18 +195,22 @@ bool Tutorial2::LoadContent()
 
     //m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
-    m_Monkey = LoadObjModel("../../Assets/Models/Monkey/monkey.obj");
-    const Texture* color = LoadTextureIndependant("../../Assets/Models/Monkey/textures/color.png");
-    const Texture* normal = LoadTextureIndependant("../../Assets/Models/Monkey/textures/normal.png");
-    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Monkey/textures/metallic.png");
-    const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Monkey/textures/roughness.png");
-    const Texture* ao = LoadTextureIndependant("../../Assets/Models/Monkey/textures/ao.png");
+    m_Monkey = LoadObjModel("../../Assets/Models/Lantern/lantern_obj.obj");
+    const Texture* color = LoadTextureIndependant("../../Assets/Models/Lantern/textures/color.jpg");
+    const Texture* normal = LoadTextureIndependant("../../Assets/Models/Lantern/textures/normal.jpg");
+    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.jpg");
+    const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Lantern/textures/roughness.jpg");
+    const Texture* ao = LoadTextureIndependant("../../Assets/Models/Lantern/textures/ao.jpg");
     m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
     m_MonekyTextureList.emplace(std::make_pair("normal", const_cast<Texture*>(normal)));
     m_MonekyTextureList.emplace(std::make_pair("metallic", const_cast<Texture*>(metallic)));
     m_MonekyTextureList.emplace(std::make_pair("roughness", const_cast<Texture*>(roughness)));
     m_MonekyTextureList.emplace(std::make_pair("ao", const_cast<Texture*>(ao)));
-    m_Monkey[0].AddTextureData(m_MonekyTextureList);
+
+    for (int i = 0; i < m_Monkey.size(); i++)
+    {
+        m_Monkey[i].AddTextureData(m_MonekyTextureList);
+    }
 
     m_ContentLoaded = true;
 
@@ -562,7 +566,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         XMMATRIX translationMatrix = XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(5, 5, 5); //XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
 

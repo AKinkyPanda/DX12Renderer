@@ -1,10 +1,9 @@
-﻿D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(133,12-37): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(134,26-44): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(143,20-58): warning X3203: signed/unsigned mismatch, unsigned assumed
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(146,31-68): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(148,34-71): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(150,16-97): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(124,16-50): warning X3576: semantics in type overridden by variable/function or enclosing type
+﻿D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(159,26-44): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(168,20-58): warning X3203: signed/unsigned mismatch, unsigned assumed
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(171,31-68): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(173,34-71): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(175,16-95): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(148,16-50): warning X3576: semantics in type overridden by variable/function or enclosing type
   
   compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\PixelShader.cso
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe

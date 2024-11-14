@@ -76,10 +76,34 @@ Texture2D Normal : register( t3 );
 Texture2D Metallic : register( t4 );
 Texture2D Roughness : register( t5 );
 Texture2D AO : register( t6 );
+Texture2D Opacity : register( t7 );
 
 
 SamplerState Sampler : register(s0);
 
+float3 getNormalFromMap(PixelShaderInput IN)
+{
+    float3 tangentNormal = Normal.Sample(Sampler, IN.UV).xyz * 2.0 - 1.0;
+
+    float3 Q1  = ddx(IN.FragPos);
+    float3 Q2  = ddy(IN.FragPos);
+    float2 st1 = ddx(IN.UV);
+    float2 st2 = ddy(IN.UV);
+
+    float3 N   = normalize(IN.Normal.xyz);
+    float3 T  = normalize(Q1*st2.x - Q2*st1.x);
+    float3 B  = -normalize(cross(N, T));
+
+    // Transform the tangent-space normal to world space using direct multiplication
+    float3 worldNormal = normalize(
+        tangentNormal.x * T +
+        tangentNormal.y * B +
+        tangentNormal.z * N
+    );
+
+    // Return the normalized world-space normal
+    return worldNormal;
+}
 // ----------------------------------------------------------------------------
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
@@ -129,8 +153,9 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
     float metallic  = Metallic.Sample(Sampler, IN.UV).r;
     float roughness = Roughness.Sample(Sampler, IN.UV).r;
     float ao        = AO.Sample(Sampler, IN.UV).r;
+    float opacity = Opacity.Sample(Sampler, IN.UV).r;
 
-    float3 N = normalize( IN.Normal );
+    float3 N = getNormalFromMap(IN); //normalize( IN.Normal );
     float3 V = normalize(camPos - IN.FragPos);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
@@ -147,7 +172,7 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
         float3 H = normalize(V + L);
         float distance = length( PointLights[i].PositionVS - IN.FragPos );
         float attenuation = 1.0 / (distance * distance);
-        float3 radiance = PointLights[i].Color * PointLights[i].Intensity * attenuation * 1000000;
+        float3 radiance = PointLights[i].Color * PointLights[i].Intensity * attenuation * 10000;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);   
