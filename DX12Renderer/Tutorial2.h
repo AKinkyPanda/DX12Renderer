@@ -118,6 +118,8 @@ private:
     Mesh m_Mesh;
     DirectX::XMMATRIX m_TempModelMatrix;
     std::vector<Mesh> m_meshes;
+    std::vector<Mesh> m_Monkey;
+    std::unordered_map<std::string, Texture*> m_MonekyTextureList;
 
     // Depth buffer.
     Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;

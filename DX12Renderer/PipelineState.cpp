@@ -65,15 +65,25 @@ void PipelineState::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	CD3DX12_DESCRIPTOR_RANGE1 descRange[1];
+	CD3DX12_DESCRIPTOR_RANGE1 descRange[5];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+	descRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+	descRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
+	descRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[5];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[10];
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 	rootParameter[1].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[2].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[3].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[4].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[2].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[4].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[5].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[6].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[7].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[8].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[9].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
+
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 

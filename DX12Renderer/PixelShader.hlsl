@@ -58,150 +58,135 @@ struct PixelOutput
     float4 Color : SV_Target0;
 };
 
+#define PI 3.14159265359
+
 
 cbuffer LightPropertiesCB : register(b1)
 {
     LightProperties LightPropertiesDelta;
 }
+cbuffer CameraPosition : register(b2)
+{
+    float4 camPos;
+}
 StructuredBuffer<PointLight> PointLights : register( t0 );
 StructuredBuffer<SpotLight> SpotLights : register( t1 );
 Texture2D Diffuse : register( t2 );
+Texture2D Normal : register( t3 );
+Texture2D Metallic : register( t4 );
+Texture2D Roughness : register( t5 );
+Texture2D AO : register( t6 );
+
 
 SamplerState Sampler : register(s0);
 
-// Helper function for Blinn-Phong lighting
-float4 CalculateBlinnPhong(float3 normal, float3 lightDir, float3 viewDir, float3 lightColor, float intensity)
+// ----------------------------------------------------------------------------
+float DistributionGGX(float3 N, float3 H, float roughness)
 {
-    float3 AmbientColor = (0.1, 0.1, 0.1);
-    // Ambient
-    float3 ambient = AmbientColor * lightColor * intensity;
+    float a = roughness*roughness;
+    float a2 = a*a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH*NdotH;
 
-    float3 DiffuseColor = (0.1, 0.1, 0.1);
-    // Diffuse
-    float3 diffuse = max(dot(normal, lightDir), 0.0) * DiffuseColor * lightColor * intensity;
+    float nom   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
 
-    float3 SpecularColor = (0.1, 0.1, 0.1);
-    // Specular
-    float3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 0.3f);
-    float3 specular = spec * SpecularColor * lightColor * intensity;
-
-    return float4(ambient + diffuse + specular, 1.0);
+    return nom / denom;
 }
-
-float3 LinearToSRGB( float3 x )
+// ----------------------------------------------------------------------------
+float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    // This is exactly the sRGB curve
-    //return x < 0.0031308 ? 12.92 * x : 1.055 * pow(abs(x), 1.0 / 2.4) - 0.055;
+    float r = (roughness + 1.0);
+    float k = (r*r) / 8.0;
 
-    // This is cheaper but nearly equivalent
-    return x < 0.0031308 ? 12.92 * x : 1.13005 * sqrt( abs( x - 0.00228 ) ) - 0.13448 * x + 0.005719;
+    float nom   = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
 }
-
-float DoDiffuse( float3 N, float3 L )
+// ----------------------------------------------------------------------------
+float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 {
-    return max( 0, dot( N, L ) );
-}
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
 
-float DoSpecular( float3 V, float3 N, float3 L )
+    return ggx1 * ggx2;
+}
+// ----------------------------------------------------------------------------
+float3 fresnelSchlick(float cosTheta, float3 F0)
 {
-    float3 R = normalize( reflect( -L, N ) );
-    float RdotV = max( 0, dot( R, V ) );
-
-    return pow( RdotV, 10 );
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
-
-float DoAttenuation( float attenuation, float distance )
-{
-    return 1.0f / ( 1.0f + attenuation * distance * distance );
-}
-
-float DoSpotCone( float3 spotDir, float3 L, float spotAngle )
-{
-    float minCos = cos( spotAngle );
-    float maxCos = ( minCos + 1.0f ) / 2.0f;
-    float cosAngle = dot( spotDir, -L );
-    return smoothstep( minCos, maxCos, cosAngle );
-}
-
-LightResult DoPointLight( PointLight light, float3 V, float3 P, float3 N )
-{
-    LightResult result;
-    float3 L = ( light.PositionVS.xyz - P );
-    float d = length( L );
-    L = L / d;
-
-    float attenuation = DoAttenuation( light.Attenuation, d );
-
-    result.Diffuse = DoDiffuse( N, L ) * attenuation * light.Color * light.Intensity;
-    result.Specular = DoSpecular( V, N, L ) * attenuation * light.Color * light.Intensity;
-
-    return result;
-}
-
-LightResult DoSpotLight( SpotLight light, float3 V, float3 P, float3 N )
-{
-    LightResult result;
-    float3 L = ( light.PositionVS.xyz - P );
-    float d = length( L );
-    L = L / d;
-
-    float attenuation = DoAttenuation( light.Attenuation, d );
-
-    float spotIntensity = DoSpotCone( light.DirectionVS.xyz, L, light.SpotAngle );
-
-    result.Diffuse = DoDiffuse( N, L ) * attenuation * spotIntensity * light.Color * light.Intensity;
-    result.Specular = DoSpecular( V, N, L ) * attenuation * spotIntensity * light.Color * light.Intensity;
-
-    return result;
-}
-
-LightResult DoLighting( float3 P, float3 N )
-{
-    uint i;
-
-    // Lighting is performed in view space.
-    float3 V = normalize( -P );
-
-    LightResult totalResult = (LightResult)0;
-
-    for ( i = 0; i < LightPropertiesDelta.NumPointLights; ++i )
-    {
-        LightResult result = DoPointLight( PointLights[i], V, P, N );
-
-        totalResult.Diffuse += result.Diffuse;
-        totalResult.Specular += result.Specular;
-    }
-
-    for ( i = 0; i < LightPropertiesDelta.NumSpotLights; ++i )
-    {
-        LightResult result = DoSpotLight( SpotLights[i], V, P, N );
-
-        totalResult.Diffuse += result.Diffuse;
-        totalResult.Specular += result.Specular;
-    }
-
-    //totalResult.Diffuse = saturate( totalResult.Diffuse );
-    //totalResult.Specular = saturate( totalResult.Specular );
-
-    return totalResult;
-}
-
+// ----------------------------------------------------------------------------
 PixelOutput main(PixelShaderInput IN) : SV_Target0
 {
     PixelOutput OUT;
 
-    LightResult lit = DoLighting( IN.FragPos.xyz, normalize( IN.Normal ) );
+    float3 albedo   = pow(Diffuse.Sample(Sampler, IN.UV).rgb, 2.2);
+    float metallic  = Metallic.Sample(Sampler, IN.UV).r;
+    float roughness = Roughness.Sample(Sampler, IN.UV).r;
+    float ao        = AO.Sample(Sampler, IN.UV).r;
 
-    //lit.Diffuse = float4(0, 0, 0, 1);
-    //lit.Specular = float4(0, 0, 0, 1);
+    float3 N = normalize( IN.Normal );
+    float3 V = normalize(camPos - IN.FragPos);
 
-    float4 emissive = float4(0, 0, 0, 1);
-    float4 ambient = float4(0.1, 0.1, 0.1, 1);
-    float4 diffuse = float4(0.58, 0.58, 0.58, 1) * lit.Diffuse;
-    float4 specular = float4(1, 1, 1, 1) * lit.Specular;
-    float4 texColor = Diffuse.Sample( Sampler, IN.UV );
+    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
+    // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
+    float3 F0 = float3(10, 10, 10); 
+    F0 = lerp(F0, albedo, metallic);
 
-    OUT.Color = ( emissive + ambient + diffuse + specular ) * texColor;
+    // reflectance equation
+    float3 Lo = float3(0.0, 0.0, 0.0);
+    for(int i = 0; i < LightPropertiesDelta.NumPointLights; ++i) 
+    {
+        // calculate per-light radiance
+        float3 L = normalize( PointLights[i].PositionVS - IN.FragPos );
+        float3 H = normalize(V + L);
+        float distance = length( PointLights[i].PositionVS - IN.FragPos );
+        float attenuation = 1.0 / (distance * distance);
+        float3 radiance = PointLights[i].Color * PointLights[i].Intensity * attenuation * 1000000;
+
+        // Cook-Torrance BRDF
+        float NDF = DistributionGGX(N, H, roughness);   
+        float G   = GeometrySmith(N, V, L, roughness);      
+        float3 F    = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+           
+        float3 numerator    = NDF * G * F; 
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+        float3 specular = numerator / denominator;
+        
+        // kS is equal to Fresnel
+        float3 kS = F;
+        // for energy conservation, the diffuse and specular light can't
+        // be above 1.0 (unless the surface emits light); to preserve this
+        // relationship the diffuse component (kD) should equal 1.0 - kS.
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        // multiply kD by the inverse metalness such that only non-metals 
+        // have diffuse lighting, or a linear blend if partly metal (pure metals
+        // have no diffuse light).
+        kD *= 1.0 - metallic;	  
+
+        // scale light by NdotL
+        float NdotL = max(dot(N, L), 0.0);        
+
+        // add to outgoing radiance Lo
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    }   
+    
+    // ambient lighting (note that the next IBL tutorial will replace 
+    // this ambient lighting with environment lighting).
+    float3 ambient = float3(0.03, 0.03, 0.03) * albedo * ao;
+
+    float3 color = ambient + Lo;
+
+    // HDR tonemapping
+    color = color / (color + float3(1.0, 1.0, 1.0));
+    // gamma correct
+    color = pow(color, float3(1.0/2.2, 1.0/2.2, 1.0/2.2)); 
+
+    OUT.Color = float4(color, 1.0);
     return OUT;
 }

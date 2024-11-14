@@ -86,16 +86,21 @@ std::vector<Mesh> LoadObjModel(const std::string& filePath)
 				}
 			}
 
-			std::vector<int32_t> materialIndices = CompressMaterialIndices(shapes[i].mesh.material_ids);
-			std::unordered_map<std::string, Texture*> texture = std::unordered_map<std::string, Texture*>(materialIndices.size());
-			for (size_t index = 0; index < materialIndices.size(); index++)
-			{
-				texture.insert(std::make_pair("diffuse", const_cast<Texture*>(textures[materialIndices[index]])));
+			std::unordered_map<std::string, Texture*> texture;
+
+			if (!textures.empty()) {
+				std::vector<int32_t> materialIndices = CompressMaterialIndices(shapes[i].mesh.material_ids);
+				texture = std::unordered_map<std::string, Texture*>(materialIndices.size());
+				for (size_t index = 0; index < materialIndices.size(); index++)
+				{
+					texture.insert(std::make_pair("diffuse", const_cast<Texture*>(textures[materialIndices[index]])));
+				}
 			}
 
 			mesh.AddVertexData(vertices);
 			mesh.AddIndexData(indices);
-			mesh.AddTextureData(texture);
+			if (!textures.empty())
+				mesh.AddTextureData(texture);
 			mesh.CreateBuffers();
 
 			meshes[i] = mesh;
@@ -249,4 +254,32 @@ std::vector<uint8_t> ReadBinaryFile(const std::string& _filePath)
 	}
 
 	return readBuffer;
+}
+
+const Texture* LoadTextureIndependant(const std::string& filePath)
+{
+	const Texture* texture = nullptr;
+
+	// Go to project settings and fix this !!!
+	if (DoesFileExist(filePath))
+	{
+		int width, height, channels = 0;
+		std::vector<uint8_t> buffer = ReadBinaryFile(filePath);
+		unsigned char* data = stbi_load_from_memory(buffer.data(), static_cast<int>(buffer.size()), &width, &height, &channels, 4);
+		std::vector<uint8_t> imageData = std::vector<uint8_t>(data, data + width * height * 4);
+		texture = new Texture(filePath, imageData, XMFLOAT2(width, height));
+		buffer.clear();
+		imageData.clear();
+		buffer.shrink_to_fit();
+		imageData.shrink_to_fit();
+		stbi_image_free(data);
+	}
+	else
+	{
+		UploadTexture(filePath, errorTexture, XMFLOAT2(2, 2));
+		texture = m_textures.find(filePath)->second;
+		//spdlog::error("[Asset Manager]: image '{}' does not exist.", filePath.c_str());
+	}
+
+	return texture;
 }

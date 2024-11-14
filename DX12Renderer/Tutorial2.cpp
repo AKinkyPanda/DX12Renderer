@@ -107,9 +107,10 @@ Tutorial2::Tutorial2(const std::wstring& name, int width, int height, bool vSync
     , m_VSync(vSync)
     , m_ContentLoaded(false)
 {
-    XMVECTOR cameraPos = DirectX::XMVectorSet(15, 500, -10, 1);
-    //XMVECTOR cameraPos = DirectX::XMVectorSet(0, 0, 0, 1);
-    XMVECTOR cameraTarget = DirectX::XMVectorSet(35, 500, -10, 1);
+    //XMVECTOR cameraPos = DirectX::XMVectorSet(15, 500, -10, 1);
+    //XMVECTOR cameraTarget = DirectX::XMVectorSet(35, 500, -10, 1);
+    XMVECTOR cameraPos = DirectX::XMVectorSet(0, 0, 50, 1);
+    XMVECTOR cameraTarget = DirectX::XMVectorSet(-100, 0, 0, 1);
     XMVECTOR cameraUp = DirectX::XMVectorSet(0, 1, 0, 1);
 
     m_Camera.set_LookAt(cameraPos, cameraTarget, cameraUp);
@@ -192,7 +193,20 @@ bool Tutorial2::LoadContent()
 
     m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
-    m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
+    //m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
+
+    m_Monkey = LoadObjModel("../../Assets/Models/Monkey/monkey.obj");
+    const Texture* color = LoadTextureIndependant("../../Assets/Models/Monkey/textures/color.png");
+    const Texture* normal = LoadTextureIndependant("../../Assets/Models/Monkey/textures/normal.png");
+    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Monkey/textures/metallic.png");
+    const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Monkey/textures/roughness.png");
+    const Texture* ao = LoadTextureIndependant("../../Assets/Models/Monkey/textures/ao.png");
+    m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
+    m_MonekyTextureList.emplace(std::make_pair("normal", const_cast<Texture*>(normal)));
+    m_MonekyTextureList.emplace(std::make_pair("metallic", const_cast<Texture*>(metallic)));
+    m_MonekyTextureList.emplace(std::make_pair("roughness", const_cast<Texture*>(roughness)));
+    m_MonekyTextureList.emplace(std::make_pair("ao", const_cast<Texture*>(ao)));
+    m_Monkey[0].AddTextureData(m_MonekyTextureList);
 
     m_ContentLoaded = true;
 
@@ -324,8 +338,6 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
     // Update the model matrix.
-    float angle2 = static_cast<float>(90);
-    const XMVECTOR rotationAxis2 = DirectX::XMVectorSet(-1, 0, 0, 0);
     m_TempModelMatrix = XMMatrixScaling(0.25, 0.25, 0.25);
 
     // Update the view matrix.
@@ -338,7 +350,7 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     float aspectRatio = static_cast<float>(GetClientWidth()) / static_cast<float>(GetClientHeight());
     m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 1000.0f);
 
-    const int numPointLights = 1;
+    const int numPointLights = 2;
     const int numSpotLights = 0;
 
     static const XMVECTORF32 LightColors[] = { Colors::White, Colors::Orange, Colors::Yellow, Colors::Green,
@@ -355,8 +367,12 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
         PointLight& l = m_PointLights[i];
 
         if (i == 0) {
-            l.PositionWS = { 15.0f, 135.0f, -10.0f, 1.0f };
+            //l.PositionWS = { 15.0f, 135.0f, -10.0f, 1.0f };
+            l.PositionWS = { 0.0f, 0.0f, 50.0f, 1.0f };
         }
+        else if (i == 1) {
+            l.PositionWS = { 0.0f, 25.0f, 25.0f, 1.0f };
+        } 
         else {
             l.PositionWS = { static_cast<float>(std::sin(offset * i)) * radius, 9.0f,
                  static_cast<float>(std::cos(offset * i)) * radius, 1.0f };
@@ -471,7 +487,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         TransitionResource(commandList, backBuffer,
             D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+        //FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+        FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
         ClearRTV(commandList, rtv, clearColor);
         ClearDepth(commandList, dsv);
@@ -480,6 +497,9 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
     XMMATRIX projectionMatrix = m_Camera.get_ProjectionMatrix();
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /*
+    
     // Test Meshes
     for (int i = 0; i < m_meshes.size(); i++) {
         commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
@@ -495,49 +515,17 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        ////Upload lights
-        //LightProperties lightProps;
-        //lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
-        //lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
-
-        //SetGraphics32BitConstants(RootParameters::LightPropertiesCB, lightProps, commandList);
-        //SetGraphicsDynamicStructuredBuffer(RootParameters::PointLights, m_PointLights, commandList, m_UploadBuffer.get());
-        //SetGraphicsDynamicStructuredBuffer(RootParameters::SpotLights, m_SpotLights, commandList, m_UploadBuffer.get());
-
-        //// Draw the earth sphere
-        //XMMATRIX translationMatrix = m_TempModelMatrix;
-        //XMMATRIX rotationMatrix = XMMatrixIdentity();
-        //XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-        //XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        //XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
-        //XMMATRIX viewProjectionMatrix = viewMatrix * m_Camera.get_ProjectionMatrix();
-
-        //Mat matrices;
-        //ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-
-        //commandQueue->SetGraphicsDynamicConstantBuffer(RootParameters::MatricesCB, matrices);
-        //commandQueue->SetGraphicsDynamicConstantBuffer(RootParameters::MaterialCB, Material::White);
-        //commandQueue->SetShaderResourceView(RootParameters::Textures, 0, m_EarthTexture,
-        //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-        // Draw the earth sphere
+        // Draw sponza
         XMMATRIX translationMatrix = XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        //XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
 
         Mat matrices;
         ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
 
         SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-        //XMMATRIX mvpMatrix2 = XMMatrixMultiply(m_TempModelMatrix, viewMatrix);
-        //mvpMatrix2 = XMMatrixMultiply(mvpMatrix2, projectionMatrix);
-        //commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix2, 0);
 
         LightProperties lightProps;
         lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
@@ -553,6 +541,63 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
+    */
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Monkey PBR
+    for (int i = 0; i < m_Monkey.size(); i++) 
+    {
+        commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
+        commandList->SetGraphicsRootSignature(m_PipelineState->GetRootSignature().Get());
+        commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
+
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
+        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
+
+        commandList->RSSetViewports(1, &m_Viewport);
+        commandList->RSSetScissorRects(1, &m_ScissorRect);
+
+        commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+        XMMATRIX translationMatrix = XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(5, 5, 5); //XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
+
+        Mat matrices;
+        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+
+        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+        LightProperties lightProps;
+        lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
+        lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
+
+        SetGraphics32BitConstants(1, lightProps, commandList);
+        XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+        SetGraphics32BitConstants(2, CameraPos, commandList);
+        SetGraphicsDynamicStructuredBuffer(3, m_PointLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(4, m_SpotLights, commandList, m_UploadBuffer.get());
+
+        auto descriptorIndex = m_Monkey[i].GetTextureList()["diffuse"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
+
+        auto descriptorIndex2 = m_Monkey[i].GetTextureList()["normal"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
+
+        auto descriptorIndex3 = m_Monkey[i].GetTextureList()["metallic"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
+
+        auto descriptorIndex4 = m_Monkey[i].GetTextureList()["roughness"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
+
+        auto descriptorIndex5 = m_Monkey[i].GetTextureList()["ao"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5));
+
+        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
+    }
     // Reset upload buffer so no memory leak
     m_UploadBuffer.get()->Reset();
 
