@@ -198,7 +198,7 @@ bool Tutorial2::LoadContent()
     m_Monkey = LoadObjModel("../../Assets/Models/Lantern/lantern_obj.obj");
     const Texture* color = LoadTextureIndependant("../../Assets/Models/Lantern/textures/color.jpg");
     const Texture* normal = LoadTextureIndependant("../../Assets/Models/Lantern/textures/normal.jpg");
-    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.jpg");
+    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/worn-shiny-metal-Metallic.png");
     const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Lantern/textures/roughness.jpg");
     const Texture* ao = LoadTextureIndependant("../../Assets/Models/Lantern/textures/ao.jpg");
     m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
