@@ -193,13 +193,14 @@ bool Tutorial2::LoadContent()
     ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
 
     m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_SkyboxPipelineState = std::make_shared<PSOSkybox>(L"VSSkybox", L"PSSkybox", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
     //m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
     m_Monkey = LoadObjModel("../../Assets/Models/Lantern/lantern_obj.obj");
     const Texture* color = LoadTextureIndependant("../../Assets/Models/Lantern/textures/color.jpg");
     const Texture* normal = LoadTextureIndependant("../../Assets/Models/Lantern/textures/normal.jpg");
-    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.png");
+    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.jpg");
     const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Lantern/textures/roughness.jpg");
     const Texture* ao = LoadTextureIndependant("../../Assets/Models/Lantern/textures/ao.jpg");
     m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
@@ -213,9 +214,14 @@ bool Tutorial2::LoadContent()
         m_Monkey[i].AddTextureData(m_MonekyTextureList);
     }
 
+
+    ///////////////////////////////////////////////////////////////
+    // SKY TEXTURE
+    ///////////////////////////////////////////////////////////////
+
     DirectX::TexMetadata* DDSData = new TexMetadata();
     DirectX::ScratchImage DDSImage;
-    HRESULT hr = DirectX::LoadFromDDSFile(L"../../Assets/Textures/Skybox/BrightSky.dds", DDS_FLAGS_ALLOW_LARGE_FILES, DDSData, DDSImage);
+    HRESULT hr = DirectX::LoadFromDDSFile(L"../../Assets/Textures/Skybox/SkyWater.dds", DDS_FLAGS_ALLOW_LARGE_FILES, DDSData, DDSImage);
 
     std::vector<uint8_t> DDSImageData;
     DDSImageData.emplace_back(*DDSImage.GetPixels());
@@ -225,29 +231,11 @@ bool Tutorial2::LoadContent()
 
     DirectX::CreateTexture(device.Get(), *DDSData, &m_SkyTexture2);
 
+    std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+    hr = PrepareUpload(device.Get(), DDSImage.GetImages(), DDSImage.GetImageCount(), DDSImage.GetMetadata(),
+        subresources);
 
-    ///////////////////////////////////////////////////////////////
-    // SKY TEXTURE
-    ///////////////////////////////////////////////////////////////
-    //XMFLOAT2 imageSize = XMFLOAT2(DDSImage.GetMetadata().width, DDSImage.GetMetadata().height);
-
-    //D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    //D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, imageSize.x, imageSize.y);
-
-    //ThrowIfFailed(device->CreateCommittedResource(
-    //    &properties,
-    //    D3D12_HEAP_FLAG_NONE,
-    //    &desc,
-    //    D3D12_RESOURCE_STATE_COMMON,
-    //    nullptr,
-    //    IID_PPV_ARGS(&m_SkyTexture)));
-
-    //D3D12_SUBRESOURCE_DATA subresource;
-    //subresource.pData = DDSImageData.data();
-    //subresource.RowPitch = imageSize.x * sizeof(uint32_t);
-    //subresource.SlicePitch = imageSize.x * imageSize.y * sizeof(uint32_t);
-
-    //commandQueue->UploadData(m_SkyTexture, subresource);
+    commandQueue->UploadData(m_SkyTexture2, subresources);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Texture2D.MostDetailedMip = 0;
@@ -255,10 +243,15 @@ bool Tutorial2::LoadContent()
     srvDesc.Format = m_SkyTexture2->GetDesc().Format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Texture2D.MipLevels = m_SkyTexture2->GetDesc().MipLevels; // for now...
+    srvDesc.Texture2D.MipLevels = m_SkyTexture2->GetDesc().MipLevels;
 
     m_SkyDescriptorIndex = SRVHeap->GetNextIndex();
     device->CreateShaderResourceView(m_SkyTexture2, &srvDesc, SRVHeap->GetCPUHandleAt(m_SkyDescriptorIndex));
+
+    MeshData skyBox = CreateBox(1, 1, 1, 3);
+    m_SkyBoxMesh.AddVertexData(skyBox.Vertices);
+    m_SkyBoxMesh.AddIndexData(skyBox.Indices32);
+    m_SkyBoxMesh.CreateBuffers();
 
     m_ContentLoaded = true;
 
@@ -650,6 +643,43 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
+
+    /*
+    * SKY BOX
+    */
+
+    commandList->SetPipelineState(m_SkyboxPipelineState->GetPipelineState().Get());
+    commandList->SetGraphicsRootSignature(m_SkyboxPipelineState->GetRootSignature().Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
+
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetVertexBuffer()));
+    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetIndexBuffer()));
+
+    commandList->RSSetViewports(1, &m_Viewport);
+    commandList->RSSetScissorRects(1, &m_ScissorRect);
+
+    commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+    XMMATRIX translationMatrix = XMMatrixIdentity();
+    XMMATRIX rotationMatrix = XMMatrixIdentity();
+    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+    XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
+
+    Mat matrices;
+    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+    matrices.ModelMatrix = worldMatrix;
+    matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
+    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+    XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+    SetGraphics32BitConstants(1, CameraPos, commandList);
+
+    auto descriptorIndex = m_SkyDescriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
+
+    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_SkyBoxMesh.GetIndexList().size()), 1, 0, 0, 0);
 
     // Reset upload buffer so no memory leak
     m_UploadBuffer.get()->Reset();

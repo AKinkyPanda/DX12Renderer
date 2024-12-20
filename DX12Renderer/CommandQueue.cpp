@@ -33,7 +33,7 @@ CommandQueue::~CommandQueue()
 {
 }
 
-void CommandQueue::UploadData(ComPtr<ID3D12Resource> resource, D3D12_SUBRESOURCE_DATA subresource)
+void CommandQueue::UploadData(ComPtr<ID3D12Resource> resource, D3D12_SUBRESOURCE_DATA subresource, UINT subresourceNumber)
 {
     ComPtr<ID3D12Device2> device = Application::Get().GetDevice();
     CD3DX12_RESOURCE_BARRIER copyBarrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -58,7 +58,43 @@ void CommandQueue::UploadData(ComPtr<ID3D12Resource> resource, D3D12_SUBRESOURCE
         IID_PPV_ARGS(&intermediate)
     ));
 
-    UpdateSubresources(m_CommandList.Get(), resource.Get(), intermediate.Get(), 0, 0, 1, &subresource);
+    UpdateSubresources(m_CommandList.Get(), resource.Get(), intermediate.Get(), 0, 0, subresourceNumber, &subresource);
+    m_CommandList->ResourceBarrier(1, &pixelBarrier);
+    m_CommandList->Close();
+
+    ExecuteCommandList();
+    WaitForFenceValue(Signal());
+}
+
+void CommandQueue::UploadData(ID3D12Resource* resource, std::vector<D3D12_SUBRESOURCE_DATA> subresources, UINT subresourceNumber    )
+{
+    ComPtr<ID3D12Device2> device = Application::Get().GetDevice();
+    CD3DX12_RESOURCE_BARRIER copyBarrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+    CD3DX12_RESOURCE_BARRIER pixelBarrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    ThrowIfFailed(m_CommandAllocator->Reset());
+    ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
+
+    m_CommandList->ResourceBarrier(1, &copyBarrier);
+
+    // upload is implemented by application developer. Here's one solution using <d3dx12.h>
+    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resource,
+        0, static_cast<unsigned int>(subresources.size()));
+
+    ComPtr<ID3D12Resource> textureUploadHeap;
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+        D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(textureUploadHeap.GetAddressOf()));
+
+    UpdateSubresources(m_CommandList.Get(),
+        resource, textureUploadHeap.Get(),
+        0, 0, static_cast<unsigned int>(subresources.size()),
+        subresources.data());
+
     m_CommandList->ResourceBarrier(1, &pixelBarrier);
     m_CommandList->Close();
 

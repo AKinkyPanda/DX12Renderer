@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Mesh.h"
 #include "PipelineState.h"
+#include "../PSOSkybox.h"
 #include "../Light.h"
 
 #include <DirectXMath.h>
@@ -147,9 +148,12 @@ private:
     std::vector<Mesh> m_Monkey;
     std::unordered_map<std::string, Texture*> m_MonekyTextureList;
 
+    Mesh m_SkyBoxMesh;
     ComPtr<ID3D12Resource> m_SkyTexture;
     ID3D12Resource* m_SkyTexture2;
     uint32_t m_SkyDescriptorIndex;
+
+    std::shared_ptr<PSOSkybox> m_SkyboxPipelineState;
 
     // Depth buffer.
     Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;

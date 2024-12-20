@@ -31,7 +31,8 @@ public:
     /// </summary>
     /// <param name="resource"></param>
     /// <param name="subresource"></param>
-    void UploadData(ComPtr<ID3D12Resource> resource, D3D12_SUBRESOURCE_DATA subresource);
+    void UploadData(ComPtr<ID3D12Resource> resource, D3D12_SUBRESOURCE_DATA subresource, UINT subresourceNumber = 1);
+    void UploadData(ID3D12Resource* resource, std::vector<D3D12_SUBRESOURCE_DATA> subresources, UINT subresourceNumber = 1);
 
     uint64_t Signal();
     bool IsFenceComplete(uint64_t fenceValue);
