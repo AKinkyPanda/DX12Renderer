@@ -1,9 +1,4 @@
-﻿D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(159,26-44): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(168,20-58): warning X3203: signed/unsigned mismatch, unsigned assumed
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(171,31-68): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(173,34-71): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(175,16-95): warning X3206: implicit truncation of vector type
-D:\Git\DX12Renderer\DX12Renderer\PixelShader.hlsl(148,16-50): warning X3576: semantics in type overridden by variable/function or enclosing type
-  
-  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\PixelShader.cso
+﻿  Tutorial2.cpp
+D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
+D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe

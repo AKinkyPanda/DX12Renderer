@@ -49,6 +49,32 @@ public:
      */
     virtual void UnloadContent() override;
 
+    struct MeshData
+    {
+        std::vector<VertexPosColor> Vertices;
+        std::vector<WORD> Indices32;
+
+        std::vector<WORD>& GetIndices16()
+        {
+            if (mIndices16.empty())
+            {
+                mIndices16.resize(Indices32.size());
+                for (size_t i = 0; i < Indices32.size(); ++i)
+                    mIndices16[i] = static_cast<WORD>(Indices32[i]);
+            }
+
+            return mIndices16;
+        }
+
+    private:
+        std::vector<WORD> mIndices16;
+    };
+
+    MeshData CreateBox(float width, float height, float depth, WORD numSubdivisions);
+
+    void Subdivide(MeshData& meshData);
+    VertexPosColor MidPoint(const VertexPosColor& v0, const VertexPosColor& v1);
+
     //Descriptor Heap for textures
     std::shared_ptr<ID3D12DescriptorHeap> m_SRVHeap;
 
@@ -120,6 +146,10 @@ private:
     std::vector<Mesh> m_meshes;
     std::vector<Mesh> m_Monkey;
     std::unordered_map<std::string, Texture*> m_MonekyTextureList;
+
+    ComPtr<ID3D12Resource> m_SkyTexture;
+    ID3D12Resource* m_SkyTexture2;
+    uint32_t m_SkyDescriptorIndex;
 
     // Depth buffer.
     Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;

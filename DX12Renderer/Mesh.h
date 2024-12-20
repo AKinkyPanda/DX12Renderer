@@ -16,6 +16,14 @@ class Texture;
 
 struct VertexPosColor
 {
+	VertexPosColor() = default;
+	VertexPosColor(float px, float py, float pz,
+		float nx, float ny, float nz,
+		float u, float v) :
+		Position(px, py, pz),
+		Normal(nx, ny, nz),
+		TexCoord(u, v) {}
+
 	void SetPosition(const DirectX::XMFLOAT3& position)
 	{
 		Position = position;

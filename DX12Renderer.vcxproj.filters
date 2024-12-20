@@ -157,4 +157,7 @@
     <FxCompile Include="DX12Renderer\PixelShader.hlsl" />
     <FxCompile Include="DX12Renderer\VertexShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

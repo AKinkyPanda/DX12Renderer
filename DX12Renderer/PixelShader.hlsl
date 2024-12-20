@@ -161,7 +161,7 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
     float3 F0 = float3(0.04, 0.04, 0.04); 
-    F0 = lerp(F0, albedo, metallic);
+    F0 = lerp(albedo, albedo, metallic);
 
     // reflectance equation
     float3 Lo = float3(0.0, 0.0, 0.0);
@@ -172,7 +172,7 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
         float3 H = normalize(V + L);
         float distance = length( PointLights[i].PositionVS - IN.FragPos );
         float attenuation = 1.0 / (distance * distance);
-        float3 radiance = PointLights[i].Color * PointLights[i].Intensity * attenuation * 10000;
+        float3 radiance = PointLights[i].Color * PointLights[i].Intensity * attenuation * 1000;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);   
@@ -185,20 +185,14 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
         
         // kS is equal to Fresnel
         float3 kS = F;
-        // for energy conservation, the diffuse and specular light can't
-        // be above 1.0 (unless the surface emits light); to preserve this
-        // relationship the diffuse component (kD) should equal 1.0 - kS.
         float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        // multiply kD by the inverse metalness such that only non-metals 
-        // have diffuse lighting, or a linear blend if partly metal (pure metals
-        // have no diffuse light).
         kD *= 1.0 - metallic;	  
 
         // scale light by NdotL
         float NdotL = max(dot(N, L), 0.0);        
 
         // add to outgoing radiance Lo
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }   
     
     // ambient lighting (note that the next IBL tutorial will replace 

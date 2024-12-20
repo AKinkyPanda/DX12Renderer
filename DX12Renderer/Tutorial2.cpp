@@ -29,6 +29,7 @@ using namespace Microsoft::WRL;
 #include "Texture.h"
 #include "../Light.h"
 #include "../DirectXColors.h"
+#include "DirectXTex.h"
 
 using namespace DirectX;
 
@@ -39,7 +40,7 @@ constexpr const T& clamp(const T& val, const T& min, const T& max)
     return val < min ? min : val > max ? max : val;
 }
 
-static VertexPosColor g_Vertices[8] = {
+/*static VertexPosColor g_Vertices[8] = {
     { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
     { XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
     { XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
@@ -58,7 +59,7 @@ static WORD g_Indicies[36] =
     3, 2, 6, 3, 6, 7,
     1, 5, 6, 1, 6, 2,
     4, 0, 3, 4, 3, 7
-};
+};*/
 
 struct Mat
 {
@@ -198,7 +199,7 @@ bool Tutorial2::LoadContent()
     m_Monkey = LoadObjModel("../../Assets/Models/Lantern/lantern_obj.obj");
     const Texture* color = LoadTextureIndependant("../../Assets/Models/Lantern/textures/color.jpg");
     const Texture* normal = LoadTextureIndependant("../../Assets/Models/Lantern/textures/normal.jpg");
-    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/worn-shiny-metal-Metallic.png");
+    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.png");
     const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Lantern/textures/roughness.jpg");
     const Texture* ao = LoadTextureIndependant("../../Assets/Models/Lantern/textures/ao.jpg");
     m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
@@ -211,6 +212,53 @@ bool Tutorial2::LoadContent()
     {
         m_Monkey[i].AddTextureData(m_MonekyTextureList);
     }
+
+    DirectX::TexMetadata* DDSData = new TexMetadata();
+    DirectX::ScratchImage DDSImage;
+    HRESULT hr = DirectX::LoadFromDDSFile(L"../../Assets/Textures/Skybox/BrightSky.dds", DDS_FLAGS_ALLOW_LARGE_FILES, DDSData, DDSImage);
+
+    std::vector<uint8_t> DDSImageData;
+    DDSImageData.emplace_back(*DDSImage.GetPixels());
+    //const Texture* SkyTex = new Texture(std::string("../../Assets/Textures/Skybox/BrightSky.dds"), DDSImageData, XMFLOAT2(DDSImage.GetMetadata().width, DDSImage.GetMetadata().height));
+
+    std::shared_ptr<DescriptorHeap> SRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    DirectX::CreateTexture(device.Get(), *DDSData, &m_SkyTexture2);
+
+
+    ///////////////////////////////////////////////////////////////
+    // SKY TEXTURE
+    ///////////////////////////////////////////////////////////////
+    //XMFLOAT2 imageSize = XMFLOAT2(DDSImage.GetMetadata().width, DDSImage.GetMetadata().height);
+
+    //D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    //D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, imageSize.x, imageSize.y);
+
+    //ThrowIfFailed(device->CreateCommittedResource(
+    //    &properties,
+    //    D3D12_HEAP_FLAG_NONE,
+    //    &desc,
+    //    D3D12_RESOURCE_STATE_COMMON,
+    //    nullptr,
+    //    IID_PPV_ARGS(&m_SkyTexture)));
+
+    //D3D12_SUBRESOURCE_DATA subresource;
+    //subresource.pData = DDSImageData.data();
+    //subresource.RowPitch = imageSize.x * sizeof(uint32_t);
+    //subresource.SlicePitch = imageSize.x * imageSize.y * sizeof(uint32_t);
+
+    //commandQueue->UploadData(m_SkyTexture, subresource);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+    srvDesc.Format = m_SkyTexture2->GetDesc().Format;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Texture2D.MipLevels = m_SkyTexture2->GetDesc().MipLevels; // for now...
+
+    m_SkyDescriptorIndex = SRVHeap->GetNextIndex();
+    device->CreateShaderResourceView(m_SkyTexture2, &srvDesc, SRVHeap->GetCPUHandleAt(m_SkyDescriptorIndex));
 
     m_ContentLoaded = true;
 
@@ -548,7 +596,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     */
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Monkey PBR
+    // Lanter PBR
     for (int i = 0; i < m_Monkey.size(); i++) 
     {
         commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
@@ -602,6 +650,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
+
     // Reset upload buffer so no memory leak
     m_UploadBuffer.get()->Reset();
 
@@ -749,6 +798,187 @@ void Tutorial2::OnMouseWheel(MouseWheelEventArgs& e)
     char buffer[256];
     sprintf_s(buffer, "FoV: %f\n", m_FoV);
     OutputDebugStringA(buffer);
+}
+
+Tutorial2::MeshData Tutorial2::CreateBox(float width, float height, float depth, WORD numSubdivisions)
+{
+    MeshData meshData;
+
+    //
+    // Create the vertices.
+    //
+
+    VertexPosColor v[24];
+
+    float w2 = 0.5f * width;
+    float h2 = 0.5f * height;
+    float d2 = 0.5f * depth;
+
+    // Fill in the front face vertex data.
+    v[0] = VertexPosColor(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
+    v[1] = VertexPosColor(-w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+    v[2] = VertexPosColor(+w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f);
+    v[3] = VertexPosColor(+w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f);
+
+    // Fill in the back face vertex data.
+    v[4] = VertexPosColor(-w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    v[5] = VertexPosColor(+w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+    v[6] = VertexPosColor(+w2, +h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+    v[7] = VertexPosColor(-w2, +h2, +d2, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+    // Fill in the top face vertex data.
+    v[8] = VertexPosColor(-w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f);
+    v[9] = VertexPosColor(-w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
+    v[10] = VertexPosColor(+w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f);
+    v[11] = VertexPosColor(+w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f);
+
+    // Fill in the bottom face vertex data.
+    v[12] = VertexPosColor(-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f);
+    v[13] = VertexPosColor(+w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f);
+    v[14] = VertexPosColor(+w2, -h2, +d2, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f);
+    v[15] = VertexPosColor(-w2, -h2, +d2, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f);
+
+    // Fill in the left face vertex data.
+    v[16] = VertexPosColor(-w2, -h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    v[17] = VertexPosColor(-w2, +h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    v[18] = VertexPosColor(-w2, +h2, -d2, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+    v[19] = VertexPosColor(-w2, -h2, -d2, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+
+    // Fill in the right face vertex data.
+    v[20] = VertexPosColor(+w2, -h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    v[21] = VertexPosColor(+w2, +h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    v[22] = VertexPosColor(+w2, +h2, +d2, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+    v[23] = VertexPosColor(+w2, -h2, +d2, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+
+    meshData.Vertices.assign(&v[0], &v[24]);
+
+    //
+    // Create the indices.
+    //
+
+    WORD i[36];
+
+    // Fill in the front face index data
+    i[0] = 0; i[1] = 1; i[2] = 2;
+    i[3] = 0; i[4] = 2; i[5] = 3;
+
+    // Fill in the back face index data
+    i[6] = 4; i[7] = 5; i[8] = 6;
+    i[9] = 4; i[10] = 6; i[11] = 7;
+
+    // Fill in the top face index data
+    i[12] = 8; i[13] = 9; i[14] = 10;
+    i[15] = 8; i[16] = 10; i[17] = 11;
+
+    // Fill in the bottom face index data
+    i[18] = 12; i[19] = 13; i[20] = 14;
+    i[21] = 12; i[22] = 14; i[23] = 15;
+
+    // Fill in the left face index data
+    i[24] = 16; i[25] = 17; i[26] = 18;
+    i[27] = 16; i[28] = 18; i[29] = 19;
+
+    // Fill in the right face index data
+    i[30] = 20; i[31] = 21; i[32] = 22;
+    i[33] = 20; i[34] = 22; i[35] = 23;
+
+    meshData.Indices32.assign(&i[0], &i[36]);
+
+    // Put a cap on the number of subdivisions.
+    numSubdivisions = std::min<WORD>(numSubdivisions, 6u);
+
+    for (WORD i = 0; i < numSubdivisions; ++i)
+        Subdivide(meshData);
+
+    return meshData;
+}
+
+void Tutorial2::Subdivide(MeshData& meshData)
+{
+    // Save a copy of the input geometry.
+    MeshData inputCopy = meshData;
+
+
+    meshData.Vertices.resize(0);
+    meshData.Indices32.resize(0);
+
+    //       v1
+    //       *
+    //      / \
+	//     /   \
+	//  m0*-----*m1
+    //   / \   / \
+	//  /   \ /   \
+	// *-----*-----*
+    // v0    m2     v2
+
+    WORD numTris = (WORD)inputCopy.Indices32.size() / 3;
+    for (WORD i = 0; i < numTris; ++i)
+    {
+        VertexPosColor v0 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 0]];
+        VertexPosColor v1 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 1]];
+        VertexPosColor v2 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 2]];
+
+        //
+        // Generate the midpoints.
+        //
+
+        VertexPosColor m0 = MidPoint(v0, v1);
+        VertexPosColor m1 = MidPoint(v1, v2);
+        VertexPosColor m2 = MidPoint(v0, v2);
+
+        //
+        // Add new geometry.
+        //
+
+        meshData.Vertices.push_back(v0); // 0
+        meshData.Vertices.push_back(v1); // 1
+        meshData.Vertices.push_back(v2); // 2
+        meshData.Vertices.push_back(m0); // 3
+        meshData.Vertices.push_back(m1); // 4
+        meshData.Vertices.push_back(m2); // 5
+
+        meshData.Indices32.push_back(i * 6 + 0);
+        meshData.Indices32.push_back(i * 6 + 3);
+        meshData.Indices32.push_back(i * 6 + 5);
+
+        meshData.Indices32.push_back(i * 6 + 3);
+        meshData.Indices32.push_back(i * 6 + 4);
+        meshData.Indices32.push_back(i * 6 + 5);
+
+        meshData.Indices32.push_back(i * 6 + 5);
+        meshData.Indices32.push_back(i * 6 + 4);
+        meshData.Indices32.push_back(i * 6 + 2);
+
+        meshData.Indices32.push_back(i * 6 + 3);
+        meshData.Indices32.push_back(i * 6 + 1);
+        meshData.Indices32.push_back(i * 6 + 4);
+    }
+}
+
+VertexPosColor Tutorial2::MidPoint(const VertexPosColor& v0, const VertexPosColor& v1)
+{
+    XMVECTOR p0 = XMLoadFloat3(&v0.Position);
+    XMVECTOR p1 = XMLoadFloat3(&v1.Position);
+
+    XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
+    XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
+
+    XMVECTOR tex0 = XMLoadFloat2(&v0.TexCoord);
+    XMVECTOR tex1 = XMLoadFloat2(&v1.TexCoord);
+
+    // Compute the midpoints of all the attributes.  Vectors need to be normalized
+    // since linear interpolating can make them not unit length.  
+    XMVECTOR pos = 0.5f * (p0 + p1);
+    XMVECTOR normal = XMVector3Normalize(0.5f * (n0 + n1));
+    XMVECTOR tex = 0.5f * (tex0 + tex1);
+
+    VertexPosColor v;
+    XMStoreFloat3(&v.Position, pos);
+    XMStoreFloat3(&v.Normal, normal);
+    XMStoreFloat2(&v.TexCoord, tex);
+
+    return v;
 }
 
 /*
