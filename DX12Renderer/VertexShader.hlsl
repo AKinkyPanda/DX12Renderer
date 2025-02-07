@@ -11,8 +11,6 @@ cbuffer MatCB : register(b0)
     Mat Matrices;
 }
 
-//ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
-
 struct VertexPosColor
 {
     float3 Position : POSITION;
@@ -26,6 +24,7 @@ struct VertexShaderOutput
     float4 Normal    : NORMAL;
     float2 UV : TEXCOORD0;   // Match this to the input in pixel shader
     float3 FragPos : COLOR0;
+    float3 WorldPos : COLOR1;
 };
 
 VertexShaderOutput main(VertexPosColor IN)
@@ -36,6 +35,9 @@ VertexShaderOutput main(VertexPosColor IN)
     OUT.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, IN.Normal), 1.0f);
     OUT.UV = IN.TexCoord;
     OUT.FragPos = mul( Matrices.ModelViewMatrix, float4(IN.Position, 1.0f));
+
+    float4 worldPos = mul(Matrices.ModelMatrix, float4(IN.Position, 1.0f));
+    OUT.WorldPos = worldPos.xyz;
 
     return OUT;
 }
