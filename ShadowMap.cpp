@@ -5,6 +5,8 @@
 
 #include "ShadowMap.h"
 #include "DX12Renderer/Helpers.h"
+#include <stdexcept>
+#include "DX12Renderer/Application.h"
 
 ShadowMap::ShadowMap(ID3D12Device* device, UINT width, UINT height)
 {
@@ -83,6 +85,11 @@ void ShadowMap::OnResize(UINT newWidth, UINT newHeight)
 
 void ShadowMap::BuildDescriptors()
 {
+	if (mhCpuSrv.ptr == 0 || mhCpuDsv.ptr == 0)
+	{
+		throw std::runtime_error("Error: Descriptor handles are invalid.");
+	}
+
 	// Create SRV to resource so we can sample the shadow map in a shader program.
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -104,7 +111,7 @@ void ShadowMap::BuildDescriptors()
 }
 
 void ShadowMap::BuildResource()
-{
+{	
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -131,4 +138,5 @@ void ShadowMap::BuildResource()
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		&optClear,
 		IID_PPV_ARGS(&mShadowMap)));
+	mShadowMap->SetName(L"Shadow Map Texture Buffer");
 }
