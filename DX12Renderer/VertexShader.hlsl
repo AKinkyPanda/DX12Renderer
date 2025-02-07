@@ -36,7 +36,7 @@ VertexShaderOutput main(VertexPosColor IN)
     OUT.UV = IN.TexCoord;
     OUT.FragPos = mul( Matrices.ModelViewMatrix, float4(IN.Position, 1.0f));
 
-    float4 worldPos = mul(Matrices.ModelMatrix, float4(IN.Position, 1.0f));
+    float4 worldPos = mul(float4(IN.Position, 1.0f), Matrices.ModelMatrix);
     OUT.WorldPos = worldPos.xyz;
 
     return OUT;

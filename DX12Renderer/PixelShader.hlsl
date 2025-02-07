@@ -161,7 +161,7 @@ float ShadowCalculation(float4 posWorld, float3 normal)
     float depth = shadowCoord.z;
     float shadowDepth = ShadowMap.SampleCmpLevelZero(ShadowSampler, shadowCoord.xy, depth).r;
 
-    return (depth <= shadowDepth + 0.005) ? 1.0 : 0.5; // Shadow Bias
+    return (depth <= shadowDepth + 0.001) ? 1.0 : 0.5; // Shadow Bias
 }
 // ----------------------------------------------------------------------------
 float CalcShadowFactor(float4 shadowPosH)
@@ -169,7 +169,7 @@ float CalcShadowFactor(float4 shadowPosH)
     // Complete projection by doing division by w.
     shadowPosH.xyz /= shadowPosH.w;
 
-    //shadowPosH.y = 1.0f - shadowPosH.y;
+    //shadowPosH.xy = shadowPosH.xy * 0.5f + 0.5f;
 
     // Depth in NDC space.
     float depth = shadowPosH.z;
@@ -247,53 +247,9 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
         // add to outgoing radiance Lo
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
-    
-    // Reflectance equation for spotlights
-    for (int i = 0; i < LightPropertiesDelta.NumSpotLights; ++i)
-    {
-    // Calculate per-light radiance:
-    // Compute the vector from the fragment to the spotlight.
-    float3 L = normalize(SpotLights[i].PositionVS - IN.FragPos);
-    float3 H = normalize(V + L);
-    float distance = length(SpotLights[i].PositionVS - IN.FragPos);
-    float attenuation = 1.0 / (distance * distance);
 
-    // Compute the spotlight angular falloff:
-    // Here, we assume that the spotlight's direction points _where_ the light shines.
-    // To get the angle between the light direction and the direction from the light to the fragment,
-    // we compute the dot product with the negated light direction.
-    float theta = dot(L, normalize(-SpotLights[i].DirectionVS));
-    
-    // Smooth step: if theta is between the outer and inner cutoff, we interpolate.
-    float epsilon = SpotLights[i].SpotAngle - SpotLights[i].SpotAngle;
-    float intensity = clamp((theta - SpotLights[i].SpotAngle) / epsilon, 0.0, 1.0);
-
-    // Compute radiance (you may scale or tweak the 1000 factor as needed)
-    float3 radiance = SpotLights[i].Color * SpotLights[i].Intensity * attenuation * intensity;
-
-    // Cook-Torrance BRDF components:
-    float NDF = DistributionGGX(N, H, roughness);
-    float G   = GeometrySmith(N, V, L, roughness);
-    float3 F  = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
-
-    float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // Avoid divide by zero
-    float3 specular = numerator / denominator;
-    
-    // kS is equal to Fresnel, kD is the diffuse portion.
-    float3 kS = F;
-    float3 kD = float3(1.0, 1.0, 1.0) - kS;
-    kD *= (1.0 - metallic);
-
-    // Scale by the cosine of the angle between normal and light.
-    float NdotL = max(dot(N, L), 0.0);
-
-    // Accumulate contribution
-    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-    }
-    
     float shadowFactor = 1;
-    //shadowFactor = ShadowCalculation(float4(IN.Position.xyz, 1.0f), IN.Normal);
+    //shadowFactor = ShadowCalculation(float4(IN.WorldPos, 1.0f), N);
     float4 shadowPosH = mul(float4(IN.WorldPos, 1.0f), gLightViewProj);
     shadowFactor = CalcShadowFactor(shadowPosH);
 

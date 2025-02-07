@@ -346,6 +346,12 @@ void Tutorial2::ComputeLightSpaceMatrix()
 
     XMMATRIX lightProj = XMMatrixOrthographicLH(60.0f, 60.0f, 1.0f, 500.0f); // Use perspective if needed.
 
+    XMMATRIX T(
+        0.5f, 0.0f, 0.0f, 0.0f,
+        0.0f, -0.5f, 0.0f, 0.0f,  // Flip Y
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.0f, 1.0f);
+
     m_LightViewProj = XMMatrixTranspose(lightView * lightProj);
 }
 
