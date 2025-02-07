@@ -9,6 +9,7 @@
 #include "Application.h"
 #include "Tutorial2.h"
 #include "Vertex.h"
+#include <array>
 
 using namespace DirectX;
 
@@ -65,32 +66,52 @@ void PipelineState::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	CD3DX12_DESCRIPTOR_RANGE1 descRange[6];
+	CD3DX12_DESCRIPTOR_RANGE1 descRange[7];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
 	descRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
 	descRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
 	descRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 	descRange[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
+	descRange[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8); // Shadow Map Texture
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[11];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[13];
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
+
 	rootParameter[1].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[2].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[3].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[4].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[5].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[6].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[7].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[8].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[9].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[10].InitAsDescriptorTable(1, &descRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsConstants(sizeof(XMMATRIX) / 4, 3, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	rootParameter[4].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[5].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	rootParameter[6].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[7].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[8].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[9].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[10].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[11].InitAsDescriptorTable(1, &descRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[12].InitAsDescriptorTable(1, &descRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 
+	CD3DX12_STATIC_SAMPLER_DESC shadowSampler(
+		1, // shaderRegister
+		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
+		0.0f,                               // mipLODBias
+		16,                                 // maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,
+		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
+
+
+	std::array<CD3DX12_STATIC_SAMPLER_DESC, 2> staticSamplers = { sampler, shadowSampler };
+
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init_1_1(_countof(rootParameter), rootParameter, 1, &sampler, rootSignatureFlags);
+	rootSignatureDesc.Init_1_1(_countof(rootParameter), rootParameter, staticSamplers.size(), staticSamplers.data(), rootSignatureFlags);
 	
 
 	//CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
@@ -151,6 +172,7 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
+		//CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC Sampler;
 	} pipelineStateStream;
 
 	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
@@ -176,6 +198,10 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 	rasterizer.FrontCounterClockwise = TRUE;
 	rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
+	//DXGI_SAMPLE_DESC sampler{};
+	//sampler.Count = 1;
+	//sampler.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
+
 	pipelineStateStream.pRootSignature = m_rootSignature.Get();
 	//pipelineStateStream.InputLayout = VertexPositionNormalTangentBitangentTexture::InputLayout;
 	pipelineStateStream.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
@@ -187,6 +213,7 @@ void PipelineState::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineStateStream.RTVFormats = rtvFormats;
 	pipelineStateStream.Rasterizer = rasterizer;
+	//pipelineStateStream.Sampler = sampler;
 
 
 	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
