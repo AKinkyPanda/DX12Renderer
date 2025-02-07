@@ -5,12 +5,14 @@
 #include "Mesh.h"
 #include "PipelineState.h"
 #include "../PSOSkybox.h"
+#include "../PSOShadowMap.h"
 #include "../Light.h"
 
 #include <DirectXMath.h>
 #include "../Camera.h"
 
 #include "../UploadBuffer.h"
+#include "../ShadowMap.h"
 
 class Mesh;
 
@@ -132,6 +134,10 @@ private:
     // Resize the depth buffer to match the size of the client area.
     void ResizeDepthBuffer(int width, int height);
 
+    void ComputeLightSpaceMatrix();
+
+    void RenderShadowMap(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
     // Vertex buffer for the cube.
@@ -148,12 +154,20 @@ private:
     std::vector<Mesh> m_Monkey;
     std::unordered_map<std::string, Texture*> m_MonekyTextureList;
 
+    // Skybox
     Mesh m_SkyBoxMesh;
     ComPtr<ID3D12Resource> m_SkyTexture;
     ID3D12Resource* m_SkyTexture2;
     uint32_t m_SkyDescriptorIndex;
 
     std::shared_ptr<PSOSkybox> m_SkyboxPipelineState;
+
+    //Shadow Map
+    std::unique_ptr<ShadowMap> m_ShadowMap;
+    uint32_t m_ShadowMapCPUSRVDescriptorIndex;
+    uint32_t m_ShadowMapGPUSRVDescriptorIndex;
+    uint32_t m_ShadowMapCPUDSVDescriptorIndex;
+    std::shared_ptr<PSOShadowMap> m_ShadowMapPipelineState;
 
     // Depth buffer.
     Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
@@ -204,6 +218,8 @@ private:
     DirectX::XMMATRIX m_ModelMatrix;
     DirectX::XMMATRIX m_ViewMatrix;
     DirectX::XMMATRIX m_ProjectionMatrix;
+
+    DirectX::XMMATRIX m_LightViewProj;
 
     // Define some lights.
     std::vector<PointLight> m_PointLights;

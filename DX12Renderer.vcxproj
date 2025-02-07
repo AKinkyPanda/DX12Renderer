@@ -164,6 +164,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="DX12Renderer\Vertex.cpp" />
     <ClCompile Include="DX12Renderer\Window.cpp" />
     <ClCompile Include="Light.cpp" />
+    <ClCompile Include="PSOShadowMap.cpp" />
     <ClCompile Include="PSOSkybox.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
@@ -195,6 +196,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="DX12Renderer\Vertex.h" />
     <ClInclude Include="DX12Renderer\Window.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="PSOShadowMap.h" />
     <ClInclude Include="PSOSkybox.h" />
     <ClInclude Include="ShadowMap.h" />
     <ClInclude Include="UploadBuffer.h" />
@@ -206,6 +208,10 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0_level_9_1</ShaderModel>
     </FxCompile>
+    <FxCompile Include="DX12Renderer\PSShadowMap.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+    </FxCompile>
     <FxCompile Include="DX12Renderer\PSSkybox.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -215,6 +221,10 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0_level_9_1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="DX12Renderer\VSShadowMap.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
     </FxCompile>
     <FxCompile Include="DX12Renderer\VSSkybox.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>

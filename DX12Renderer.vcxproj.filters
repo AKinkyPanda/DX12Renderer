@@ -75,6 +75,9 @@
     <ClCompile Include="ShadowMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PSOShadowMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX12Renderer\Window.h">
@@ -164,12 +167,17 @@
     <ClInclude Include="ShadowMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PSOShadowMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DX12Renderer\PixelShader.hlsl" />
     <FxCompile Include="DX12Renderer\VertexShader.hlsl" />
     <FxCompile Include="DX12Renderer\PSSkybox.hlsl" />
     <FxCompile Include="DX12Renderer\VSSkybox.hlsl" />
+    <FxCompile Include="DX12Renderer\PSShadowMap.hlsl" />
+    <FxCompile Include="DX12Renderer\VSShadowMap.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

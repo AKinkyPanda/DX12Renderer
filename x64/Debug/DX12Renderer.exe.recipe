@@ -10,10 +10,16 @@
       <FullPath>D:\Git\DX12Renderer\x64\Debug\PixelShader.cso</FullPath>
     </ContentFile>
     <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\PSShadowMap.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\PSSkybox.cso</FullPath>
     </ContentFile>
     <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\VertexShader.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\VSShadowMap.cso</FullPath>
     </ContentFile>
     <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\VSSkybox.cso</FullPath>
