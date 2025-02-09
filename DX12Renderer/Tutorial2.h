@@ -20,6 +20,7 @@ struct LightProperties
 {
     uint32_t NumPointLights;
     uint32_t NumSpotLights;
+    uint32_t NumDirectionalLights;
 };
 
 // An enum for root signature parameters.
@@ -224,6 +225,7 @@ private:
     // Define some lights.
     std::vector<PointLight> m_PointLights;
     std::vector<SpotLight>  m_SpotLights;
+    std::vector<DirectionalLight>  m_DirectionalLights;
     std::unique_ptr<UploadBuffer> m_UploadBuffer;
 
     bool m_ContentLoaded;

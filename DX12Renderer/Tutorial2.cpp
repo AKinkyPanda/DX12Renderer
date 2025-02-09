@@ -344,7 +344,22 @@ void Tutorial2::ComputeLightSpaceMatrix()
 
     XMMATRIX lightView = XMMatrixLookAtLH(lightPos, lightTarget, lightUp);
 
+    float aspectRatio = m_Width / (float)m_Height;
+    float orthoHeight = 3.f;
+    float orthoWidth = orthoHeight * aspectRatio;
     XMMATRIX lightProj = XMMatrixOrthographicLH(60.0f, 60.0f, 1.0f, 500.0f); // Use perspective if needed.
+    XMMATRIX lightPerspectiveMatrix = XMMatrixPerspectiveFovLH(
+        XM_PIDIV2,
+        1.0f,
+        1.0f,
+        400.f   // change for light range!!!
+    );
+    XMMATRIX lightPerspectiveMatrix2 = XMMatrixPerspectiveFovLH(
+        1.0f,
+        1.0f,
+        1.0f,
+        400.f   // change for light range!!!
+    );
 
     XMMATRIX T(
         0.5f, 0.0f, 0.0f, 0.0f,
@@ -352,7 +367,39 @@ void Tutorial2::ComputeLightSpaceMatrix()
         0.0f, 0.0f, 1.0f, 0.0f,
         0.5f, 0.5f, 0.0f, 1.0f);
 
+    XMMATRIX shadowTransform = lightProj * lightView;
+
     m_LightViewProj = XMMatrixTranspose(lightView * lightProj);
+
+    XMFLOAT3 centerBoundingSphere = XMFLOAT3(0.0f, 0.0f, 0.0f);
+    float radiusBoundingSphere = 2000;
+
+    XMFLOAT3 lightDir = XMFLOAT3(0, -1, 1);
+    XMVECTOR lightdir = XMLoadFloat3(&lightDir);
+    lightdir = XMVector3Normalize(lightdir); // Normalize before scaling
+
+    XMVECTOR lightpos = -2.0f * radiusBoundingSphere * lightdir;
+    XMVECTOR targetpos = XMLoadFloat3(&centerBoundingSphere);
+    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+    XMMATRIX V = XMMatrixLookAtLH(lightpos, targetpos, up); // light space view matrix
+
+    // transform bounding sphere to light space
+    XMFLOAT3 spherecenterls;
+    XMStoreFloat3(&spherecenterls, XMVector3TransformCoord(targetpos, V));
+
+    // orthographic frustum
+    float l = spherecenterls.x - radiusBoundingSphere;
+    float b = spherecenterls.y - radiusBoundingSphere;
+    float n = spherecenterls.z - radiusBoundingSphere * 2;
+    float r = spherecenterls.x + radiusBoundingSphere;
+    float t = spherecenterls.y + radiusBoundingSphere;
+    float f = spherecenterls.z + radiusBoundingSphere * 2;
+    XMMATRIX P = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+    XMMATRIX S = XMMatrixTranspose(V * P);
+
+    m_LightViewProj = S;
 }
 
 void Tutorial2::RenderShadowMap(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
@@ -411,7 +458,7 @@ void Tutorial2::OnResize(ResizeEventArgs& e)
 
 void XM_CALLCONV ComputeMatrices(FXMMATRIX model, CXMMATRIX view, CXMMATRIX viewProjection, Mat& mat)
 {
-    mat.ModelMatrix = model;
+    mat.ModelMatrix = XMMatrixTranspose(model);
     mat.ModelViewMatrix = model * view;
     mat.InverseTransposeModelViewMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, mat.ModelViewMatrix));
     mat.ModelViewProjectionMatrix = model * viewProjection;
@@ -478,15 +525,23 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     float aspectRatio = static_cast<float>(GetClientWidth()) / static_cast<float>(GetClientHeight());
     m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 1000.0f);
 
-    const int numPointLights = 2;
+    const int numPointLights = 1;
     const int numSpotLights = 0;
+    const int numDirectionalLights = 1;
 
     static const XMVECTORF32 LightColors[] = { Colors::White, Colors::Orange, Colors::Yellow, Colors::Green,
                                                Colors::Blue,  Colors::Indigo, Colors::Violet, Colors::White };
 
-    const float radius = 8.0f;
-    const float offset = 2.0f * XM_PI / numPointLights;
-    const float offset2 = offset + (offset / 2.0f);
+    float radius = 0;
+    float offset = 0;
+    float offset2 = 0;
+
+    if (numPointLights > 0)
+    {
+        radius = 8.0f;
+        //offset = 2.0f * XM_PI / numPointLights;
+        offset2 = offset + (offset / 2.0f);
+    }
 
     // Setup the light buffers.
     m_PointLights.resize(numPointLights);
@@ -535,6 +590,21 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
         l.Intensity = 1.0f;
         l.SpotAngle = XMConvertToRadians(45.0f);
         l.Attenuation = 0.0f;
+    }
+
+    m_DirectionalLights.resize(numDirectionalLights);
+    for (int i = 0; i < numDirectionalLights; ++i)
+    {
+        DirectionalLight& l = m_DirectionalLights[i];
+
+        XMVECTOR temp = XMVectorSet(0, -1, 1, 0);
+        XMVECTOR directionWS = XMVector3Normalize(XMVectorSetW(XMVectorNegate(temp), 0));
+        XMVECTOR directionVS = XMVector3Normalize(XMVector3TransformNormal(directionWS, viewMatrix));
+        XMStoreFloat4(&l.DirectionWS, directionWS);
+        XMStoreFloat4(&l.DirectionVS, directionVS);
+
+        l.Color = XMFLOAT4(LightColors[0]);
+        l.Intensity = 5.0f;
     }
 
     ComputeLightSpaceMatrix();
@@ -667,7 +737,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->SetGraphicsRootSignature(m_ShadowMapPipelineState->GetRootSignature().Get());
     commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
-        // Lanter PBR
+    // Lanter PBR
     for (int i = 0; i < m_Monkey.size(); i++)
     {
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -677,10 +747,18 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMFLOAT4X4 lightViewProj;
         XMStoreFloat4x4(&lightViewProj, m_LightViewProj);
         SetGraphics32BitConstants(0, lightViewProj, commandList);
+
+        XMMATRIX translationMatrix = XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        XMFLOAT4X4 lightWorld;
+        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
+        SetGraphics32BitConstants(1, lightWorld, commandList);
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
-    for (int i = 0; i < m_meshes.size(); i++) 
+    for (int i = 0; i < m_meshes.size(); i++)
     {
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));
@@ -689,6 +767,14 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMFLOAT4X4 lightViewProj;
         XMStoreFloat4x4(&lightViewProj, m_LightViewProj);
         SetGraphics32BitConstants(0, lightViewProj, commandList);
+
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 2000); //XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        XMFLOAT4X4 lightWorld;
+        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
+        SetGraphics32BitConstants(1, lightWorld, commandList);
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
@@ -714,7 +800,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         XMMATRIX translationMatrix = XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
 
@@ -726,31 +812,34 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         LightProperties lightProps;
         lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
         lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
+        lightProps.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
 
         SetGraphics32BitConstants(1, lightProps, commandList);
-        XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+        //XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+        XMVECTOR CameraPos = m_Camera.get_Translation();
         SetGraphics32BitConstants(2, CameraPos, commandList);
         SetGraphics32BitConstants(3, m_LightViewProj, commandList);
 
         SetGraphicsDynamicStructuredBuffer(4, m_PointLights, commandList, m_UploadBuffer.get());
         SetGraphicsDynamicStructuredBuffer(5, m_SpotLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(6, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
         auto descriptorIndex = m_Monkey[i].GetTextureList()["diffuse"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
+        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
 
         auto descriptorIndex2 = m_Monkey[i].GetTextureList()["normal"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
+        commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
 
         auto descriptorIndex3 = m_Monkey[i].GetTextureList()["metallic"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
+        commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
 
         auto descriptorIndex4 = m_Monkey[i].GetTextureList()["roughness"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
+        commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
 
         auto descriptorIndex5 = m_Monkey[i].GetTextureList()["ao"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5)); 
+        commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5)); 
 
-        commandList->SetGraphicsRootDescriptorTable(12, m_ShadowMap->Srv());
+        commandList->SetGraphicsRootDescriptorTable(13, m_ShadowMap->Srv());
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
@@ -774,9 +863,9 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
         // Draw sponza
-        XMMATRIX translationMatrix = XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(2, 2, 2); //XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 2000); //XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
 
@@ -788,17 +877,20 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         LightProperties lightProps;
         lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
         lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
+        lightProps.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
 
         SetGraphics32BitConstants(1, lightProps, commandList);
-        XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+        //XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+        XMVECTOR CameraPos = m_Camera.get_Translation();
         SetGraphics32BitConstants(2, CameraPos, commandList);
         SetGraphics32BitConstants(3, m_LightViewProj, commandList);
 
         SetGraphicsDynamicStructuredBuffer(4, m_PointLights, commandList, m_UploadBuffer.get());
         SetGraphicsDynamicStructuredBuffer(5, m_SpotLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(6, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
         auto descriptorIndex = m_meshes[i].GetTextureList()["diffuse"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
+        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
     }
@@ -834,7 +926,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
     SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
 
-    XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+    //XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+    XMVECTOR CameraPos = m_Camera.get_Translation();
     SetGraphics32BitConstants(1, CameraPos, commandList);
 
     auto descriptorIndex = m_SkyDescriptorIndex;

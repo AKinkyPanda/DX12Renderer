@@ -42,10 +42,32 @@ struct SpotLight
     // Total:                              16 * 6 = 96 bytes
 };
 
+struct DirectionalLight
+{
+    float4 DirectionWS; // Light direction in world space.
+    //----------------------------------- (16 byte boundary)
+    float4 DirectionVS; // Light direction in view space.
+    //----------------------------------- (16 byte boundary)
+    float4 Color;       // Light color.
+    //----------------------------------- (16 byte boundary)
+    float  Intensity;   // Light intensity.
+    float3 Padding;     // Pad to 16 bytes.
+    //----------------------------------- (16 byte boundary)
+    // Total: 16 * 4 = 64 bytes
+};
+
+struct Material
+{
+    float4 DiffuseAlbedo;
+    float3 FresnelR0;
+    float Shininess;
+};
+
 struct LightProperties
 {
     uint NumPointLights;
     uint NumSpotLights;
+    uint NumDirectionalLights;
 };
 
 struct LightResult
@@ -76,13 +98,14 @@ cbuffer cbLightSpace : register(b3)
 };
 StructuredBuffer<PointLight> PointLights : register( t0 );
 StructuredBuffer<SpotLight> SpotLights : register( t1 );
-Texture2D Diffuse : register( t2 );
-Texture2D Normal : register( t3 );
-Texture2D Metallic : register( t4 );
-Texture2D Roughness : register( t5 );
-Texture2D AO : register( t6 );
-Texture2D Opacity : register( t7 );
-Texture2D<float> ShadowMap : register( t8 );
+StructuredBuffer<DirectionalLight> DirectionalLights : register( t2 );
+Texture2D Diffuse : register( t3 );
+Texture2D Normal : register( t4 );
+Texture2D Metallic : register( t5 );
+Texture2D Roughness : register( t6 );
+Texture2D AO : register( t7 );
+Texture2D Opacity : register( t8 );
+Texture2D<float> ShadowMap : register( t9 );
 
 
 SamplerState Sampler : register(s0);
@@ -169,7 +192,8 @@ float CalcShadowFactor(float4 shadowPosH)
     // Complete projection by doing division by w.
     shadowPosH.xyz /= shadowPosH.w;
 
-    //shadowPosH.xy = shadowPosH.xy * 0.5f + 0.5f;
+    shadowPosH.xy = shadowPosH.xy * 0.5f + 0.5f;
+    shadowPosH.y = 1 - shadowPosH.y;
 
     // Depth in NDC space.
     float depth = shadowPosH.z;
@@ -198,6 +222,46 @@ float CalcShadowFactor(float4 shadowPosH)
     return percentLit / 9.0f;
 }
 // ----------------------------------------------------------------------------
+// Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").
+// R0 = ( (n-1)/(n+1) )^2, where n is the index of refraction.
+float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
+{
+    float cosIncidentAngle = saturate(dot(normal, lightVec));
+
+    float f0 = 1.0f - cosIncidentAngle;
+    float3 reflectPercent = R0 + (1.0f - R0)*(f0*f0*f0*f0*f0);
+
+    return reflectPercent;
+}
+float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, Material mat)
+{
+    const float m = mat.Shininess * 256.0f;
+    float3 halfVec = normalize(toEye + lightVec);
+
+    float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
+    float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
+
+    float3 specAlbedo = fresnelFactor*roughnessFactor;
+
+    // Our spec formula goes outside [0,1] range, but we are 
+    // doing LDR rendering.  So scale it down a bit.
+    specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+
+    return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
+}
+
+float3 ComputeDirectionalLight(DirectionalLight L, Material mat, float3 normal, float3 toEye)
+{
+    // The light vector aims opposite the direction the light rays travel.
+    float3 lightVec = L.DirectionVS;
+
+    // Scale light down by Lambert's cosine law.
+    float ndotl = max(dot(lightVec, normal), 0.0f);
+    float3 lightStrength = L.Intensity * ndotl;
+
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+}
+// ------------------------------------------------------------------------------------------------------------------------------------
 PixelOutput main(PixelShaderInput IN) : SV_Target0
 {
     PixelOutput OUT;
@@ -248,16 +312,27 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    float shadowFactor = 1;
+    float shadowFactor = 0;
     //shadowFactor = ShadowCalculation(float4(IN.WorldPos, 1.0f), N);
     float4 shadowPosH = mul(float4(IN.WorldPos, 1.0f), gLightViewProj);
     shadowFactor = CalcShadowFactor(shadowPosH);
+
+    float3 result = 0.0f;
+    Material mat = { float4(albedo, 1), F0, 0.0f };
+
+    for(int i = 0; i < LightPropertiesDelta.NumDirectionalLights; ++i)
+    {
+        result += ComputeDirectionalLight(DirectionalLights[i], mat, N, V) * shadowFactor;
+    }
+
+    float4 FinalResult = float4(result, 0);
 
     // ambient lighting (note that the next IBL tutorial will replace 
     // this ambient lighting with environment lighting).
     float3 ambient = float3(0.0003, 0.0003, 0.0003) * albedo * ao;
 
-    float3 color = ambient + (Lo * shadowFactor);
+    //float3 color = ambient + (Lo * shadowFactor);
+    float3 color = ambient + FinalResult.xyz;
 
     // HDR tonemapping
     color = color / (color + float3(1.0, 1.0, 1.0));
