@@ -101,5 +101,8 @@ struct DirectionalLight
     //----------------------------------- (16 byte boundary)
     DirectX::XMFLOAT4    Color;
     //----------------------------------- (16 byte boundary)
-    // Total:                              16 * 3 = 48 bytes 
+    float  Intensity;   // Light intensity.
+    DirectX::XMFLOAT3 Padding;     // Pad to 16 bytes.
+    //----------------------------------- (16 byte boundary)
+    // Total: 16 * 4 = 64 bytes 
 };
