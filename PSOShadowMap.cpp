@@ -65,8 +65,9 @@ void PSOShadowMap::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[1];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[2];
 	rootParameter[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // Light View and Proj
+	rootParameter[1].InitAsConstants(sizeof(XMMATRIX) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX); // World / Model
 
 	//CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 
