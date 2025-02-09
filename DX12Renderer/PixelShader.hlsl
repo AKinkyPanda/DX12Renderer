@@ -322,7 +322,35 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
 
     for(int i = 0; i < LightPropertiesDelta.NumDirectionalLights; ++i)
     {
-        result += ComputeDirectionalLight(DirectionalLights[i], mat, N, V) * shadowFactor;
+        //result += ComputeDirectionalLight(DirectionalLights[i], mat, N, V) * shadowFactor;
+
+        // The light vector aims opposite the direction the light rays travel.
+        float3 L = DirectionalLights[i].DirectionVS;
+        float3 H = normalize(V + L);
+
+        // Scale light down by Lambert's cosine law.
+        float ndotl = max(dot(L, N), 0.0f);
+        float3 radiance = DirectionalLights[i].Color * DirectionalLights[i].Intensity * ndotl;
+
+        // Cook-Torrance BRDF
+        float NDF = DistributionGGX(N, H, roughness);   
+        float G   = GeometrySmith(N, V, L, roughness);      
+        float3 F    = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+           
+        float3 numerator    = NDF * G * F; 
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+        float3 specular = numerator / denominator;
+        
+        // kS is equal to Fresnel
+        float3 kS = F;
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        kD *= 1.0 - metallic;	  
+
+        // scale light by NdotL
+        float NdotL = max(dot(N, L), 0.0);        
+
+        // add to outgoing radiance Lo
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadowFactor;
     }
 
     float4 FinalResult = float4(result, 0);
@@ -331,8 +359,8 @@ PixelOutput main(PixelShaderInput IN) : SV_Target0
     // this ambient lighting with environment lighting).
     float3 ambient = float3(0.0003, 0.0003, 0.0003) * albedo * ao;
 
-    //float3 color = ambient + (Lo * shadowFactor);
-    float3 color = ambient + FinalResult.xyz;
+    float3 color = ambient + (Lo * shadowFactor);
+    //float3 color = ambient + FinalResult.xyz;
 
     // HDR tonemapping
     color = color / (color + float3(1.0, 1.0, 1.0));
