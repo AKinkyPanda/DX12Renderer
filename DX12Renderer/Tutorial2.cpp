@@ -700,8 +700,50 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
     XMMATRIX projectionMatrix = m_Camera.get_ProjectionMatrix();
 
+    /* //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    *   SKY BOX START
+    */ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    commandList->RSSetViewports(1, &m_Viewport);
+    commandList->RSSetScissorRects(1, &m_ScissorRect);
+
+    commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+    commandList->SetPipelineState(m_SkyboxPipelineState->GetPipelineState().Get());
+    commandList->SetGraphicsRootSignature(m_SkyboxPipelineState->GetRootSignature().Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
+
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetVertexBuffer()));
+    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetIndexBuffer()));
+
+    XMMATRIX translationMatrix = XMMatrixIdentity();
+    XMMATRIX rotationMatrix = XMMatrixIdentity();
+    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+    XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
+
+    Mat matrices;
+    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+    matrices.ModelMatrix = worldMatrix;
+    matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
+    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+    XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
+    //XMVECTOR CameraPos = m_Camera.get_Translation();
+    SetGraphics32BitConstants(1, CameraPos, commandList);
+
+    auto descriptorIndexSky = m_SkyDescriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexSky));
+
+    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_SkyBoxMesh.GetIndexList().size()), 1, 0, 0, 0);
+
+    /* //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    *   SKY BOX END
+    */ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Start Shadow Map
+    // SHADOW MAP START
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     commandList->RSSetViewports(1, &m_ShadowMap->Viewport());
@@ -762,17 +804,17 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // End Shadow Map
+    // SHADOW MAP END
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
-    commandList->SetGraphicsRootSignature(m_PipelineState->GetRootSignature().Get());
-    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
     commandList->RSSetViewports(1, &m_Viewport);
     commandList->RSSetScissorRects(1, &m_ScissorRect);
 
     commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+    commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
+    commandList->SetGraphicsRootSignature(m_PipelineState->GetRootSignature().Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
     LightProperties lightProps;
     lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
@@ -780,8 +822,6 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     lightProps.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
 
     SetGraphics32BitConstants(1, lightProps, commandList);
-    //XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
-    XMVECTOR CameraPos = m_Camera.get_Translation();
     SetGraphics32BitConstants(2, CameraPos, commandList);
     SetGraphics32BitConstants(3, m_LightViewProj, commandList);
 
@@ -789,55 +829,47 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     SetGraphicsDynamicStructuredBuffer(5, m_SpotLights, commandList, m_UploadBuffer.get());
     SetGraphicsDynamicStructuredBuffer(6, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
+    auto descriptorIndex = m_Monkey[0].GetTextureList()["diffuse"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
+
+    auto descriptorIndex2 = m_Monkey[0].GetTextureList()["normal"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
+
+    auto descriptorIndex3 = m_Monkey[0].GetTextureList()["metallic"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
+
+    auto descriptorIndex4 = m_Monkey[0].GetTextureList()["roughness"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
+
+    auto descriptorIndex5 = m_Monkey[0].GetTextureList()["ao"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5));
+
     commandList->SetGraphicsRootDescriptorTable(13, m_ShadowMap->Srv());
 
     // Lanter PBR
     for (int i = 0; i < m_Monkey.size(); i++)
     {
-
-
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
-
-
 
         XMMATRIX translationMatrix = XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-
         Mat matrices;
         ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-
         SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-        auto descriptorIndex = m_Monkey[i].GetTextureList()["diffuse"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
-
-        auto descriptorIndex2 = m_Monkey[i].GetTextureList()["normal"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
-
-        auto descriptorIndex3 = m_Monkey[i].GetTextureList()["metallic"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
-
-        auto descriptorIndex4 = m_Monkey[i].GetTextureList()["roughness"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
-
-        auto descriptorIndex5 = m_Monkey[i].GetTextureList()["ao"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5));
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-// Test Meshes
-    for (int i = 0; i < m_meshes.size(); i++) {
-
-
+    // Test Meshes
+    for (int i = 0; i < m_meshes.size(); i++)
+    {
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_meshes[i].GetIndexBuffer()));
@@ -848,10 +880,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-
         Mat matrices;
         ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-
         SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
 
         auto descriptorIndex = m_meshes[i].GetTextureList()["diffuse"]->m_descriptorIndex;
@@ -861,44 +891,6 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /*
-    * SKY BOX
-    */
-
-    commandList->SetPipelineState(m_SkyboxPipelineState->GetPipelineState().Get());
-    commandList->SetGraphicsRootSignature(m_SkyboxPipelineState->GetRootSignature().Get());
-    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
-
-    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetVertexBuffer()));
-    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_SkyBoxMesh.GetIndexBuffer()));
-
-    commandList->RSSetViewports(1, &m_Viewport);
-    commandList->RSSetScissorRects(1, &m_ScissorRect);
-
-    commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-
-    XMMATRIX translationMatrix = XMMatrixIdentity();
-    XMMATRIX rotationMatrix = XMMatrixIdentity();
-    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-    XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-
-    Mat matrices;
-    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-    matrices.ModelMatrix = worldMatrix;
-    matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
-    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-    //XMVECTOR CameraPos = XMVector3Normalize(XMVector3TransformNormal(m_Camera.get_Translation(), viewMatrix));
-    //XMVECTOR CameraPos = m_Camera.get_Translation();
-    SetGraphics32BitConstants(1, CameraPos, commandList);
-
-    auto descriptorIndexSky = m_SkyDescriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexSky));
-
-    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_SkyBoxMesh.GetIndexList().size()), 1, 0, 0, 0);
 
     // Reset upload buffer so no memory leak
     m_UploadBuffer.get()->Reset();
