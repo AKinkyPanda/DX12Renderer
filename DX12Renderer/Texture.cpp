@@ -48,6 +48,7 @@ Texture::Texture(std::string path, std::vector<uint8_t> data, XMFLOAT2 imageSize
 
 	m_descriptorIndex = SRVHeap->GetNextIndex();
 	device->CreateShaderResourceView(m_data->m_texture.Get(), &srvDesc, SRVHeap->GetCPUHandleAt(m_descriptorIndex));
+	m_data->m_texture.Get()->SetName(L"Texture Resource Heap");
 }
 
 Texture::~Texture()

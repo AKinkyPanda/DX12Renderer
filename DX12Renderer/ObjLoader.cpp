@@ -67,11 +67,11 @@ std::vector<Mesh> LoadObjModel(const std::string& filePath)
 		for (size_t i = 0; i < shapes.size(); i++) {
 			Mesh mesh = Mesh();
 			std::vector<VertexPosColor> vertices = std::vector<VertexPosColor>(shapes[i].mesh.indices.size());
-			std::vector<WORD> indices = std::vector<WORD>(vertices.size());
+			std::vector<UINT> indices = std::vector<UINT>(vertices.size());
 
 			for (size_t j = 0; j < vertices.size(); j++) {
 				tinyobj::index_t index = shapes[i].mesh.indices[j];
-				indices[j] = static_cast<WORD>(j);
+				indices[j] = static_cast<UINT>(j);
 
 				if (index.vertex_index >= 0) {
 					vertices[j].SetPosition(GetPositionData(attributes, index));
