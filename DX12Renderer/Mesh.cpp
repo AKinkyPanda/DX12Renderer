@@ -17,7 +17,12 @@ void Mesh::AddVertexData(const std::vector<VertexPosColor>& vertexList)
 	m_vertexList = vertexList;
 }
 
-void Mesh::AddIndexData(const std::vector<WORD>& indexList)
+void Mesh::AddVertexData(const std::vector<VertexPosition>& vertexListPosition)
+{
+	m_vertexListPosition = vertexListPosition;
+}
+
+void Mesh::AddIndexData(const std::vector<UINT>& indexList)
 {
 	m_indexList = indexList;
 }
@@ -53,7 +58,14 @@ void Mesh::CreateVertexBuffer()
 {
 	m_vertexBuffer = std::make_shared<BufferData>();
 
-	const UINT bufferSize = static_cast<UINT>(m_vertexList.size() * sizeof(VertexPosColor));
+	UINT bufferSize = 0;
+
+	if (!m_vertexList.empty()) {
+		bufferSize = static_cast<UINT>(m_vertexList.size() * sizeof(VertexPosColor));
+	}
+	else {
+		bufferSize = static_cast<UINT>(m_vertexListPosition.size() * sizeof(VertexPosition));
+	}
 
 	D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_NONE);
@@ -70,11 +82,21 @@ void Mesh::CreateVertexBuffer()
 	D3D12_RANGE range{ 0, 0 };
 
 	ThrowIfFailed(m_vertexBuffer->m_bufferResource->Map(0, &range, reinterpret_cast<void**>(&vertexData)));
-	memcpy(vertexData, &m_vertexList[0], bufferSize);
+	if (!m_vertexList.empty()) {
+		memcpy(vertexData, &m_vertexList[0], bufferSize);
+	}
+	else {
+		memcpy(vertexData, &m_vertexListPosition[0], bufferSize);
+	}
 	m_vertexBuffer->m_bufferResource->Unmap(0, nullptr);
 
 	m_vertexBuffer->m_vertexView.BufferLocation = m_vertexBuffer->m_bufferResource->GetGPUVirtualAddress();
-	m_vertexBuffer->m_vertexView.StrideInBytes = sizeof(VertexPosColor);
+	if (!m_vertexList.empty()) {
+		m_vertexBuffer->m_vertexView.StrideInBytes = sizeof(VertexPosColor);
+	}
+	else {
+		m_vertexBuffer->m_vertexView.StrideInBytes = sizeof(VertexPosition);
+	}
 	m_vertexBuffer->m_vertexView.SizeInBytes = bufferSize;
 }
 
@@ -82,7 +104,7 @@ void Mesh::CreateIndexBuffer()
 {
 	m_indexBuffer = std::make_shared<BufferData>();
 
-	const UINT bufferSize = static_cast<UINT>(m_indexList.size() * sizeof(WORD));
+	const UINT bufferSize = static_cast<UINT>(m_indexList.size() * sizeof(UINT));
 
 	D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_NONE);
@@ -103,7 +125,7 @@ void Mesh::CreateIndexBuffer()
 	m_indexBuffer->m_bufferResource->Unmap(0, nullptr);
 
 	m_vertexBuffer->m_indexView.BufferLocation = m_indexBuffer->m_bufferResource->GetGPUVirtualAddress();
-	m_vertexBuffer->m_indexView.Format = DXGI_FORMAT_R16_UINT;
+	m_vertexBuffer->m_indexView.Format = DXGI_FORMAT_R32_UINT;
 	m_vertexBuffer->m_indexView.SizeInBytes = bufferSize;
 }
 

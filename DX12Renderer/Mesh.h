@@ -55,15 +55,16 @@ public:
 	void CreateBuffers();
 
 	void AddVertexData(const std::vector<VertexPosColor>& vertexList);
-	void AddIndexData(const std::vector<WORD>& indexList);
+	void AddVertexData(const std::vector<VertexPosition>& m_vertexListPosition);
+	void AddIndexData(const std::vector<UINT>& indexList);
 	void AddTextureData(const std::unordered_map<std::string, Texture*>& textureList);
 	void AddMaterial(const Material& material);
 
 	std::vector<VertexPosColor>& GetVertexList() { return m_vertexList; }
-	std::vector<WORD>& GetIndexList() { return m_indexList; }
+	std::vector<UINT>& GetIndexList() { return m_indexList; }
 	std::unordered_map<std::string, Texture*>& GetTextureList() { return m_textureList; }
 	std::vector<VertexPosColor> GetVertexList() const { return m_vertexList; }
-	std::vector<WORD> GetIndexList() const { return m_indexList; }
+	std::vector<UINT> GetIndexList() const { return m_indexList; }
 	std::unordered_map<std::string, Texture*> GetTextureList() const { return m_textureList; }
 	Material& GetMaterial() { return m_material; }
 	void* GetVertexBuffer();
@@ -75,7 +76,8 @@ private:
 	void CreateTexturesBuffer();
 
 	std::vector<VertexPosColor> m_vertexList;
-	std::vector<WORD> m_indexList;
+	std::vector<VertexPosition> m_vertexListPosition;
+	std::vector<UINT> m_indexList;
 	std::unordered_map<std::string, Texture*> m_textureList;
 
 	Material m_material;
