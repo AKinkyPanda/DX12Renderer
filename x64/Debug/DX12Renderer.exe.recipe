@@ -16,6 +16,9 @@
       <FullPath>D:\Git\DX12Renderer\x64\Debug\PSSkybox.cso</FullPath>
     </ContentFile>
     <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\PSTerrain.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\VertexShader.cso</FullPath>
     </ContentFile>
     <ContentFile>
@@ -23,6 +26,9 @@
     </ContentFile>
     <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\VSSkybox.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\VSTerrain.cso</FullPath>
     </ContentFile>
   </ContentFiles>
   <SatelliteDlls />

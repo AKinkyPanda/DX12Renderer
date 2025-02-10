@@ -52,7 +52,7 @@ constexpr const T& clamp(const T& val, const T& min, const T& max)
     { XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
 };
 
-static WORD g_Indicies[36] =
+static UINT g_Indicies[36] =
 {
     0, 1, 2, 0, 2, 3,
     4, 6, 5, 4, 7, 6,
@@ -188,7 +188,7 @@ bool Tutorial2::LoadContent()
 
     // Create the descriptor heap for the depth-stencil view.
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-    dsvHeapDesc.NumDescriptors = 2;
+    dsvHeapDesc.NumDescriptors = 1;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
@@ -196,6 +196,7 @@ bool Tutorial2::LoadContent()
     m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_SkyboxPipelineState = std::make_shared<PSOSkybox>(L"VSSkybox", L"PSSkybox", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_ShadowMapPipelineState = std::make_shared<PSOShadowMap>(L"VSShadowMap", L"PSShadowMap", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_TerrainPipelineState = std::make_shared<PSOTerrain>(L"VSTerrain", L"PSTerrain", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
     m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
@@ -211,11 +212,70 @@ bool Tutorial2::LoadContent()
     m_MonekyTextureList.emplace(std::make_pair("roughness", const_cast<Texture*>(roughness)));
     m_MonekyTextureList.emplace(std::make_pair("ao", const_cast<Texture*>(ao)));
 
-    for (int i = 0; i < m_Monkey.size(); i++)
-    {
-        m_Monkey[i].AddTextureData(m_MonekyTextureList);
+    m_Monkey[0].AddTextureData(m_MonekyTextureList);
+
+    //for (int i = 0; i < m_Monkey.size(); i++)
+    //{
+    //    m_Monkey[i].AddTextureData(m_MonekyTextureList);
+    //}
+
+    ///////////////////////////////////////////////////////////////
+    // HIGHTMAP
+    ///////////////////////////////////////////////////////////////
+
+    const Texture* Heightmap = LoadTextureIndependant("../../Assets/Textures/Heightmap.png");
+
+    const int height = 1024;
+    const int width = 1024;
+
+    // Create a vertex buffer
+    int arrSize = height * width;
+
+    std::vector <VertexPosition> vertices = std::vector<VertexPosition>();
+    vertices.resize(arrSize);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            vertices[y * width + x].Position = XMFLOAT3((float)x, 0.0f, (float)y);
+        }
     }
 
+    int stripSize = width * 2;
+    int numStrips = height - 1;
+    UINT newArrSize = stripSize * numStrips + (numStrips - 1) * 4; // degenerate triangles
+
+    std::vector<UINT> indices = std::vector<UINT>();
+    indices.resize(newArrSize);
+    int i = 0;
+
+    for (int s = 0; s < numStrips; ++s) {
+        int m = 0;
+        for (int n = 0; n < width; ++n) {
+            m = n + s * width;
+            indices[i++] = m + width;
+            indices[i++] = m;
+        }
+        if (s < numStrips - 1) { // create indices for degenerate triangles to get us back to the start.
+            indices[i++] = m;
+            indices[i++] = m - width + 1;
+            indices[i++] = m - width + 1;
+            indices[i++] = m - width + 1;
+        }
+    }
+
+
+    std::unordered_map<std::string, Texture*> newTextures = std::unordered_map<std::string, Texture*>();
+
+    newTextures.emplace(std::make_pair("Heightmap", const_cast<Texture*>(Heightmap)));
+
+    m_Terrain = std::vector<Mesh>();
+    Mesh tempTerrain = Mesh();
+
+    tempTerrain.AddVertexData(vertices);
+    tempTerrain.AddIndexData(indices);
+    tempTerrain.AddTextureData(newTextures);
+    tempTerrain.CreateBuffers();
+
+    m_Terrain.push_back(tempTerrain);
 
     ///////////////////////////////////////////////////////////////
     // SKY TEXTURE
@@ -273,8 +333,8 @@ bool Tutorial2::LoadContent()
     CD3DX12_CPU_DESCRIPTOR_HANDLE dHandle = static_cast<CD3DX12_CPU_DESCRIPTOR_HANDLE>(m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
 
     m_ShadowMap.get()->BuildDescriptors(
-        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetCPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
-        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
+        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetCPUHandleAt(0),
+        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(0),
         Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV)->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
 
     m_ContentLoaded = true;
@@ -283,8 +343,6 @@ bool Tutorial2::LoadContent()
     ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
 
     m_UploadBuffer = std::make_unique<MakeUploadBuffer>(device, static_cast<size_t>(_2MB));
-
-
 
     // Wait until initialization is complete.
     commandQueue->Flush();
@@ -892,6 +950,47 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+        // Transition texture to the correct state for use in the pixel shader
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+
+    commandList->SetPipelineState(m_TerrainPipelineState->GetPipelineState().Get());
+    commandList->SetGraphicsRootSignature(m_TerrainPipelineState->GetRootSignature().Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
+
+    XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
+    SetGraphics32BitConstants(1, heightWidth, commandList);
+
+    auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
+    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+    commandList->SetGraphicsRootDescriptorTable(3, m_ShadowMap->Srv());
+
+    // Terrain
+    for (int i = 0; i < m_Terrain.size(); i++)
+    {
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
+        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
+
+        XMMATRIX translationMatrix = XMMatrixTranslation(-500, -500, -2000); //XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0,0,0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
+        Mat matrices;
+        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
+    }
+
+    // Transition texture to the correct state for use out of the pixel shader
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     // Reset upload buffer so no memory leak
     m_UploadBuffer.get()->Reset();
 
@@ -1041,7 +1140,7 @@ void Tutorial2::OnMouseWheel(MouseWheelEventArgs& e)
     OutputDebugStringA(buffer);
 }
 
-Tutorial2::MeshData Tutorial2::CreateBox(float width, float height, float depth, WORD numSubdivisions)
+Tutorial2::MeshData Tutorial2::CreateBox(float width, float height, float depth, UINT numSubdivisions)
 {
     MeshData meshData;
 
@@ -1097,7 +1196,7 @@ Tutorial2::MeshData Tutorial2::CreateBox(float width, float height, float depth,
     // Create the indices.
     //
 
-    WORD i[36];
+    UINT i[36];
 
     // Fill in the front face index data
     i[0] = 0; i[1] = 1; i[2] = 2;
@@ -1126,9 +1225,9 @@ Tutorial2::MeshData Tutorial2::CreateBox(float width, float height, float depth,
     meshData.Indices32.assign(&i[0], &i[36]);
 
     // Put a cap on the number of subdivisions.
-    numSubdivisions = std::min<WORD>(numSubdivisions, 6u);
+    numSubdivisions = std::min<UINT>(numSubdivisions, 6u);
 
-    for (WORD i = 0; i < numSubdivisions; ++i)
+    for (UINT i = 0; i < numSubdivisions; ++i)
         Subdivide(meshData);
 
     return meshData;
@@ -1153,8 +1252,8 @@ void Tutorial2::Subdivide(MeshData& meshData)
 	// *-----*-----*
     // v0    m2     v2
 
-    WORD numTris = (WORD)inputCopy.Indices32.size() / 3;
-    for (WORD i = 0; i < numTris; ++i)
+    UINT numTris = (UINT)inputCopy.Indices32.size() / 3;
+    for (UINT i = 0; i < numTris; ++i)
     {
         VertexPosColor v0 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 0]];
         VertexPosColor v1 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 1]];

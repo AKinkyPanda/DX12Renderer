@@ -13,6 +13,7 @@
 
 #include "../UploadBuffer.h"
 #include "../ShadowMap.h"
+#include "../PSOTerrain.h"
 
 class Mesh;
 
@@ -56,25 +57,25 @@ public:
     struct MeshData
     {
         std::vector<VertexPosColor> Vertices;
-        std::vector<WORD> Indices32;
+        std::vector<UINT> Indices32;
 
-        std::vector<WORD>& GetIndices16()
+        std::vector<UINT>& GetIndices16()
         {
             if (mIndices16.empty())
             {
                 mIndices16.resize(Indices32.size());
                 for (size_t i = 0; i < Indices32.size(); ++i)
-                    mIndices16[i] = static_cast<WORD>(Indices32[i]);
+                    mIndices16[i] = static_cast<UINT>(Indices32[i]);
             }
 
             return mIndices16;
         }
 
     private:
-        std::vector<WORD> mIndices16;
+        std::vector<UINT> mIndices16;
     };
 
-    MeshData CreateBox(float width, float height, float depth, WORD numSubdivisions);
+    MeshData CreateBox(float width, float height, float depth, UINT numSubdivisions);
 
     void Subdivide(MeshData& meshData);
     VertexPosColor MidPoint(const VertexPosColor& v0, const VertexPosColor& v1);
@@ -154,6 +155,10 @@ private:
     std::vector<Mesh> m_meshes;
     std::vector<Mesh> m_Monkey;
     std::unordered_map<std::string, Texture*> m_MonekyTextureList;
+
+    // Heightmap / Terrain
+    std::vector<Mesh> m_Terrain;
+    std::shared_ptr<PSOTerrain> m_TerrainPipelineState;
 
     // Skybox
     Mesh m_SkyBoxMesh;

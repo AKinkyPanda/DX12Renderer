@@ -166,6 +166,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="PSOShadowMap.cpp" />
     <ClCompile Include="PSOSkybox.cpp" />
+    <ClCompile Include="PSOTerrain.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
@@ -198,6 +199,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="Light.h" />
     <ClInclude Include="PSOShadowMap.h" />
     <ClInclude Include="PSOSkybox.h" />
+    <ClInclude Include="PSOTerrain.h" />
     <ClInclude Include="ShadowMap.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
@@ -216,6 +218,9 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="DX12Renderer\PSTerrain.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="DX12Renderer\VertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
@@ -228,6 +233,9 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     </FxCompile>
     <FxCompile Include="DX12Renderer\VSSkybox.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="DX12Renderer\VSTerrain.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
