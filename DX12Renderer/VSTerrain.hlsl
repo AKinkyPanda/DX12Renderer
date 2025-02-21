@@ -46,11 +46,16 @@ VertexOutput main(float3 input : POSITION)
     // calculate vertex normal from heightmap
     float zb = heightmap.Load(int3(input.xz + int2(0, -1), 0)).r * scale;
     float zc = heightmap.Load(int3(input.xz + int2(1, 0), 0)).r * scale;
-    float zd = heightmap.Load(int3(input.xz + int2(0, 1), 0)).r * scale;
-    float ze = heightmap.Load(int3(input.xz + int2(-1, 0), 0)).r * scale;
+    float zd = heightmap.Load(int3(input.xz + int2(1, 1), 0)).r * scale;
+    float ze = heightmap.Load(int3(input.xz + int2(0, 1), 0)).r * scale;
+    float zf = heightmap.Load(int3(input.xz + int2(-1, 0), 0)).r * scale;
+    float zg = heightmap.Load(int3(input.xz + int2(-1, -1), 0)).r * scale;
  
-    output.Normal = float4(normalize(float3(ze - zc, 1.0f, zb - zd)), 1.0f);
-    //output.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, output.Normal.xyz), 1.0f);
+    float x = 2 * zf + zc + zg - zb - 2 * zc - zd;
+    float y = 6.0f;
+    float z = 2 * zb + zc + zg - zd - 2 * ze - zf;
+ 
+    output.Normal = float4(normalize(float3(x, y, z)), 1.0f);
      
     return output;
 }
