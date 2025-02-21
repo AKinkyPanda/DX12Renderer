@@ -138,8 +138,6 @@ private:
 
     void ComputeLightSpaceMatrix();
 
-    void RenderShadowMap(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
-
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
     // Vertex buffer for the cube.

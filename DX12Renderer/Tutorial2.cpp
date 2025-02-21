@@ -428,41 +428,6 @@ void Tutorial2::ComputeLightSpaceMatrix()
     m_LightViewProj = S;
 }
 
-void Tutorial2::RenderShadowMap(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
-{
-    commandList->RSSetViewports(1, &m_ShadowMap->Viewport());
-    commandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
-
-    // Change to DEPTH_WRITE.
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
-    //UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
-
-    // Clear the back buffer and depth buffer.
-    commandList->ClearDepthStencilView(m_ShadowMap->Dsv(),
-        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-    // Set null render target because we are only going to draw to
-    // depth buffer.  Setting a null render target will disable color writes.
-    // Note the active PSO also must specify a render target count of 0.
-    commandList->OMSetRenderTargets(0, nullptr, false, &m_ShadowMap->Dsv());
-
-    // Bind the pass constant buffer for the shadow map pass.
-    //SetGraphics32BitConstants(0, m_LightViewProj, commandList);
-
-
-    commandList->SetPipelineState(m_ShadowMapPipelineState.get()->GetPipelineState().Get());
-
-    SetGraphics32BitConstants(0, m_LightViewProj, commandList);
-    commandList->DrawIndexedInstanced(0, 1, 0, 0, 0);
-
-
-    // Change back to GENERIC_READ so we can read the texture in a shader.
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
-}
-
 void Tutorial2::OnResize(ResizeEventArgs& e)
 {
     if (e.Width != GetClientWidth() || e.Height != GetClientWidth())
@@ -518,38 +483,25 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
     }
 
     // Update the camera.
-    float speedMultipler = (m_Shift ? 200.0f : 100.0f);
+    float speedMultipler = (m_Shift ? 500.0f : 100.0f);
+    float deltaTime = static_cast<float>(e.ElapsedTime);
 
-    XMVECTOR cameraTranslate = DirectX::XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler *
-        static_cast<float>(e.ElapsedTime);
-    XMVECTOR cameraPan =
-        DirectX::XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * static_cast<float>(e.ElapsedTime);
-    m_Camera.Translate(cameraTranslate, Space::World);
-    m_Camera.Translate(cameraPan, Space::World);
+    // Compute intended movement along forward/backward and right/left.
+    float moveForward = m_Forward - m_Backward;
+    float moveRight = m_Right - m_Left;
 
+    // Move the camera forwards and backwards
+    XMVECTOR cameraTranslate = DirectX::XMVectorSet(moveRight, 0.0f, moveForward, 1.0f) * speedMultipler * deltaTime;
+    XMVECTOR cameraPan = DirectX::XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * deltaTime;
+    m_Camera.Translate(cameraTranslate, Space::Local);
+    m_Camera.Translate(cameraPan, Space::Local);
+
+    // Rotate the camera
     XMVECTOR cameraRotation =
         DirectX::XMQuaternionRotationRollPitchYaw(XMConvertToRadians(m_Pitch), XMConvertToRadians(m_Yaw), XMConvertToRadians(0.0f));
     m_Camera.set_Rotation(cameraRotation);
 
     XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
-
-    // Update the model matrix.
-    float angle = static_cast<float>(e.TotalTime * 90.0);
-    const XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
-    m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
-
-    // Update the model matrix.
-    m_TempModelMatrix = XMMatrixScaling(0.25, 0.25, 0.25);
-
-    // Update the view matrix.
-    const XMVECTOR eyePosition = DirectX::XMVectorSet(0, -50, 150, 1);
-    const XMVECTOR focusPoint = DirectX::XMVectorSet(0, 150, 0, 1);
-    const XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
-    m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-
-    // Update the projection matrix.
-    float aspectRatio = static_cast<float>(GetClientWidth()) / static_cast<float>(GetClientHeight());
-    m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 1000.0f);
 
     const int numPointLights = 1;
     const int numSpotLights = 0;
@@ -1017,10 +969,10 @@ void Tutorial2::OnKeyPressed(KeyEventArgs& e)
         m_Right = 1.0f;
         break;
     case KeyCode::Q:
-        m_Down = 1.0f;
+        m_Up = 1.0f;
         break;
     case KeyCode::E:
-        m_Up = 1.0f;
+        m_Down = 1.0f;
         break;
     case KeyCode::ShiftKey:
         m_Shift = true;
@@ -1056,10 +1008,10 @@ void Tutorial2::OnKeyReleased(KeyEventArgs& e)
         m_Right = 0.0f;
         break;
     case KeyCode::Q:
-        m_Down = 0.0f;
+        m_Up = 0.0f;
         break;
     case KeyCode::E:
-        m_Up = 0.0f;
+        m_Down = 0.0f;
         break;
     case KeyCode::ShiftKey:
         m_Shift = false;
