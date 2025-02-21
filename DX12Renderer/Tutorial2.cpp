@@ -319,23 +319,19 @@ bool Tutorial2::LoadContent()
     // SHADOW MAP
     ///////////////////////////////////////////////////////////////
 
-    std::shared_ptr<DescriptorHeap> ShadowCPUSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    std::shared_ptr<DescriptorHeap> ShadowGPUSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    std::shared_ptr<DescriptorHeap> ShadowCPUDSVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    std::shared_ptr<DescriptorHeap> ShadowSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    std::shared_ptr<DescriptorHeap> ShadowDSVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
     m_ShadowMap = std::make_unique<ShadowMap>(device.Get(), 2048, 2048);
 
-    m_ShadowMapCPUSRVDescriptorIndex = ShadowCPUSRVHeap->GetNextIndex();
-    m_ShadowMapGPUSRVDescriptorIndex = ShadowGPUSRVHeap->GetNextIndex();
-    m_ShadowMapCPUDSVDescriptorIndex = 0; //ShadowCPUDSVHeap->GetNextIndex();
+    UINT m_ShadowMapCPUSRVDescriptorIndex = ShadowSRVHeap->GetNextIndex();
+    UINT m_ShadowMapGPUSRVDescriptorIndex = m_ShadowMapCPUSRVDescriptorIndex;
+    UINT m_ShadowMapCPUDSVDescriptorIndex = ShadowDSVHeap->GetNextIndex();
 
-    // Still using the old dsv descriptor heap fix later
-    CD3DX12_CPU_DESCRIPTOR_HANDLE dHandle = static_cast<CD3DX12_CPU_DESCRIPTOR_HANDLE>(m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
-
-    m_ShadowMap.get()->BuildDescriptors(
-        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetCPUHandleAt(0),
-        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(0),
-        Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV)->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
+    m_ShadowMap->BuildDescriptors(
+        ShadowSRVHeap->GetCPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
+        ShadowSRVHeap->GetGPUHandleAt(m_ShadowMapGPUSRVDescriptorIndex),
+        ShadowDSVHeap->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
 
     m_ContentLoaded = true;
 
@@ -346,6 +342,11 @@ bool Tutorial2::LoadContent()
 
     // Wait until initialization is complete.
     commandQueue->Flush();
+
+    ShadowSRVHeap.reset();
+    ShadowSRVHeap.~shared_ptr();
+    ShadowDSVHeap.reset();
+    ShadowDSVHeap.~shared_ptr();
 
     return true;
 }
@@ -396,39 +397,6 @@ void Tutorial2::ResizeDepthBuffer(int width, int height)
 
 void Tutorial2::ComputeLightSpaceMatrix()
 {
-    XMVECTOR lightPos = XMVectorSet(0.0f, 30.0f, 90.0f, 1.0f);
-    XMVECTOR lightTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-    XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-    XMMATRIX lightView = XMMatrixLookAtLH(lightPos, lightTarget, lightUp);
-
-    float aspectRatio = m_Width / (float)m_Height;
-    float orthoHeight = 3.f;
-    float orthoWidth = orthoHeight * aspectRatio;
-    XMMATRIX lightProj = XMMatrixOrthographicLH(60.0f, 60.0f, 1.0f, 500.0f); // Use perspective if needed.
-    XMMATRIX lightPerspectiveMatrix = XMMatrixPerspectiveFovLH(
-        XM_PIDIV2,
-        1.0f,
-        1.0f,
-        400.f   // change for light range!!!
-    );
-    XMMATRIX lightPerspectiveMatrix2 = XMMatrixPerspectiveFovLH(
-        1.0f,
-        1.0f,
-        1.0f,
-        400.f   // change for light range!!!
-    );
-
-    XMMATRIX T(
-        0.5f, 0.0f, 0.0f, 0.0f,
-        0.0f, -0.5f, 0.0f, 0.0f,  // Flip Y
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 1.0f);
-
-    XMMATRIX shadowTransform = lightProj * lightView;
-
-    m_LightViewProj = XMMatrixTranspose(lightView * lightProj);
-
     XMFLOAT3 centerBoundingSphere = XMFLOAT3(0.0f, 0.0f, 0.0f);
     float radiusBoundingSphere = 2000;
 
@@ -814,7 +782,6 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->OMSetRenderTargets(0, nullptr, false, &m_ShadowMap->Dsv());
 
     commandList->ClearDepthStencilView(m_ShadowMap->Dsv(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
 
     commandList->SetPipelineState(m_ShadowMapPipelineState->GetPipelineState().Get());
     commandList->SetGraphicsRootSignature(m_ShadowMapPipelineState->GetRootSignature().Get());

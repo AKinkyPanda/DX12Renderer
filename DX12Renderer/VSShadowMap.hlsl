@@ -25,7 +25,5 @@ VertexOutput main(VertexInput IN)
     float4 worldPos = mul(float4(IN.PosL, 1.0f), gWorld);
     OUT.PosH = mul(worldPos, gLightViewProj);
 
-    //OUT.PosH = mul(float4(IN.PosL, 1.0f), gLightViewProj);
-
     return OUT;
 }

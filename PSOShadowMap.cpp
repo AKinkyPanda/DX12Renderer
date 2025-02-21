@@ -108,7 +108,7 @@ void PSOShadowMap::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool 
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
 	} pipelineStateStream;
 
-	// Should be 0 and UNKNOWN for shadows. Consider changing the pixel shader to void not float4
+	// Should be 0 and UNKNOWN for shadows
 	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
 	rtvFormats.NumRenderTargets = 0;
 	rtvFormats.RTFormats[0] = DXGI_FORMAT_UNKNOWN;

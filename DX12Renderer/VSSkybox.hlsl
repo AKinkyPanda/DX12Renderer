@@ -35,10 +35,10 @@ VertexShaderOutput main(VertexPosColor IN)
 {
     VertexShaderOutput OUT;
 
-    OUT.Position = mul( Matrices.ModelViewProjectionMatrix, float4(IN.Position, 1.0f));
+    //OUT.Position = mul( Matrices.ModelViewProjectionMatrix, float4(IN.Position, 1.0f));
     OUT.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, IN.Normal), 1.0f);
     OUT.UV = IN.TexCoord;
-    OUT.FragPos = mul( Matrices.ModelViewMatrix, float4(IN.Position, 1.0f));
+    //OUT.FragPos = mul( Matrices.ModelViewMatrix, float4(IN.Position, 1.0f));
 
 	// Use local vertex position as cubemap lookup vector.
 	OUT.FragPos = IN.Position;
@@ -46,18 +46,5 @@ VertexShaderOutput main(VertexPosColor IN)
     OUT.Position = mul(Matrices.ModelViewProjectionMatrix, float4(IN.Position, 0.0f));
     OUT.Position.z = OUT.Position.w;
 
-    return OUT;
-	
-	// Transform to world space.
-	//float4 posW = mul(float4(IN.Position, 1.0f), Matrices.ModelMatrix);
-    float4 posW = mul(Matrices.ModelMatrix, float4(IN.Position, 1.0f));
-
-	// Always center sky about camera.
-	posW.xyz += camPos;
-
-	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
-	//OUT.Position = mul(posW, ModelViewProjectionMatrix).xyww;
-    OUT.Position = mul(Matrices.ModelViewProjectionMatrix, posW).xyww;
-	
     return OUT;
 }

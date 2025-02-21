@@ -50,7 +50,7 @@ VertexOutput main(float3 input : POSITION)
     float ze = heightmap.Load(int3(input.xz + int2(-1, 0), 0)).r * scale;
  
     output.Normal = float4(normalize(float3(ze - zc, 1.0f, zb - zd)), 1.0f);
-    output.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, output.Normal.xyz), 1.0f);
+    //output.Normal = float4(mul((float3x3)Matrices.InverseTransposeModelViewMatrix, output.Normal.xyz), 1.0f);
      
     return output;
 }
