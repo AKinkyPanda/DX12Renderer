@@ -946,6 +946,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
+        SetGraphics32BitConstants(6, CameraPos, commandList);
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }
