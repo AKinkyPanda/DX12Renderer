@@ -26,6 +26,7 @@ struct VertexInput
 struct VertexOutput
 {
     float4 PosH : SV_POSITION;
+    float4 WorldPos : POSITION1;
     float4 Normal : NORMAL;
     float2 UV : TEXCOORD;
 };
@@ -40,8 +41,10 @@ VertexOutput main(float3 input : POSITION)
     float zCoord = input.z / heightWidth.y;
     float4 mysample = heightmap.Load(int3(xCoord * heightWidth.x, zCoord * heightWidth.y, 0));
     float4 worldPos = float4(input.x, mysample.r * scale, input.z, 1.0f);
+    output.WorldPos = worldPos;
     output.UV = float2(input.x / heightWidth.x, input.z / heightWidth.y);
-    output.PosH = mul(Matrices.ModelViewProjectionMatrix, worldPos);
+    //output.PosH = mul(Matrices.ModelViewProjectionMatrix, worldPos);
+    output.PosH = worldPos;
  
     // calculate vertex normal from heightmap
     float zb = heightmap.Load(int3(input.xz + int2(0, -1), 0)).r * scale;

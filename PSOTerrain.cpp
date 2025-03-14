@@ -16,7 +16,7 @@ using namespace DirectX;
 
 
 
-PSOTerrain::PSOTerrain(std::wstring vertexName, std::wstring pixelName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth)
+PSOTerrain::PSOTerrain(std::wstring vertexName, std::wstring pixelName, std::wstring hullName, std::wstring domainName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth)
 {
 	//https://gist.github.com/Jacob-Tate/7b326a086cf3f9d46e32315841101109
 	wchar_t path[FILENAME_MAX] = { 0 };
@@ -26,12 +26,18 @@ PSOTerrain::PSOTerrain(std::wstring vertexName, std::wstring pixelName, D3D12_PR
 
 	std::wstring vertexPath;
 	std::wstring pixelPath;
+	std::wstring hullPath;
+	std::wstring domainPath;
 	vertexPath = m_basePath + L"\\" + vertexName + L".cso";
 	pixelPath = m_basePath + L"\\" + pixelName + L".cso";
+	hullPath = m_basePath + L"\\" + hullName + L".cso";
+	domainPath = m_basePath + L"\\" + domainName + L".cso";
 
 	// Find a way to convert string to wchar
 	D3DReadFileToBlob(vertexPath.c_str(), &m_vertexShader);
 	D3DReadFileToBlob(pixelPath.c_str(), &m_pixelShader);
+	D3DReadFileToBlob(hullPath.c_str(), &m_hullShader);
+	D3DReadFileToBlob(domainPath.c_str(), &m_domainShader);
 
 	CreateRootSignature();
 	CreatePipelineState(type, useDepth);
@@ -63,21 +69,22 @@ void PSOTerrain::CreateRootSignature()
 	// Create a root signature.
 // Allow input layout and deny unnecessary access to certain pipeline stages.
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	CD3DX12_DESCRIPTOR_RANGE1 descRange[2];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // Heightmap
 	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1); // Shadow Map Texture
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[4];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[5];
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 
 	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
 	rootParameter[2].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_ALL);
 	rootParameter[3].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+
+	// Domain Shader
+	rootParameter[4].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
@@ -127,6 +134,8 @@ void PSOTerrain::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool us
 		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
 		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+		CD3DX12_PIPELINE_STATE_STREAM_HS HS;
+		CD3DX12_PIPELINE_STATE_STREAM_DS DS;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencil;
 		CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC Blend;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
@@ -156,7 +165,9 @@ void PSOTerrain::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool us
 
 	CD3DX12_RASTERIZER_DESC rasterizer{ CD3DX12_DEFAULT() };
 	rasterizer.FrontCounterClockwise = TRUE;
-	rasterizer.CullMode = D3D12_CULL_MODE_NONE;
+	rasterizer.CullMode = D3D12_CULL_MODE_BACK;
+	//rasterizer.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizer.FillMode = D3D12_FILL_MODE_WIREFRAME;
 
 	//DXGI_SAMPLE_DESC sampler{};
 	//sampler.Count = 1;
@@ -168,6 +179,8 @@ void PSOTerrain::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool us
 	pipelineStateStream.PrimitiveTopologyType = type;
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());
 	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(m_pixelShader.Get());
+	pipelineStateStream.HS = CD3DX12_SHADER_BYTECODE(m_hullShader.Get());
+	pipelineStateStream.DS = CD3DX12_SHADER_BYTECODE(m_domainShader.Get());
 	pipelineStateStream.DepthStencil = depthStencilDesc;
 	pipelineStateStream.Blend = blendDesc;
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;

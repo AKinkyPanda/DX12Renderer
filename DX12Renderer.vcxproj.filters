@@ -186,6 +186,8 @@
     <FxCompile Include="DX12Renderer\VSShadowMap.hlsl" />
     <FxCompile Include="DX12Renderer\PSTerrain.hlsl" />
     <FxCompile Include="DX12Renderer\VSTerrain.hlsl" />
+    <FxCompile Include="DX12Renderer\HSTerrain.hlsl" />
+    <FxCompile Include="DX12Renderer\DSTerrain.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

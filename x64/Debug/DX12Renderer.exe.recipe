@@ -7,6 +7,12 @@
   </ProjectOutputs>
   <ContentFiles>
     <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\DSTerrain.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>D:\Git\DX12Renderer\x64\Debug\HSTerrain.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
       <FullPath>D:\Git\DX12Renderer\x64\Debug\PixelShader.cso</FullPath>
     </ContentFile>
     <ContentFile>

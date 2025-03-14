@@ -1,6 +1,7 @@
 struct PixelShaderInput
 {
 	float4 PosH : SV_Position;
+    float4 WorldPos : POSITION1;
 	float4 Normal : NORMAL;
     float2 UV : TEXCOORD;
 };

@@ -196,7 +196,7 @@ bool Tutorial2::LoadContent()
     m_PipelineState = std::make_shared<PipelineState>(L"VertexShader", L"PixelShader", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_SkyboxPipelineState = std::make_shared<PSOSkybox>(L"VSSkybox", L"PSSkybox", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_ShadowMapPipelineState = std::make_shared<PSOShadowMap>(L"VSShadowMap", L"PSShadowMap", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_TerrainPipelineState = std::make_shared<PSOTerrain>(L"VSTerrain", L"PSTerrain", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_TerrainPipelineState = std::make_shared<PSOTerrain>(L"VSTerrain", L"PSTerrain", L"HSTerrain", L"DSTerrain", D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
 
     m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
@@ -244,24 +244,41 @@ bool Tutorial2::LoadContent()
     UINT newArrSize = stripSize * numStrips + (numStrips - 1) * 4; // degenerate triangles
 
     std::vector<UINT> indices = std::vector<UINT>();
-    indices.resize(newArrSize);
-    int i = 0;
+    //indices.resize(newArrSize);
+    //int i = 0;
 
-    for (int s = 0; s < numStrips; ++s) {
-        int m = 0;
-        for (int n = 0; n < width; ++n) {
-            m = n + s * width;
-            indices[i++] = m + width;
-            indices[i++] = m;
-        }
-        if (s < numStrips - 1) { // create indices for degenerate triangles to get us back to the start.
-            indices[i++] = m;
-            indices[i++] = m - width + 1;
-            indices[i++] = m - width + 1;
-            indices[i++] = m - width + 1;
+    //for (int s = 0; s < numStrips; ++s) {
+    //    int m = 0;
+    //    for (int n = 0; n < width; ++n) {
+    //        m = n + s * width;
+    //        indices[i++] = m + width;
+    //        indices[i++] = m;
+    //    }
+    //    if (s < numStrips - 1) { // create indices for degenerate triangles to get us back to the start.
+    //        indices[i++] = m;
+    //        indices[i++] = m - width + 1;
+    //        indices[i++] = m - width + 1;
+    //        indices[i++] = m - width + 1;
+    //    }
+    //}
+
+    // switched to triangle list instead of strip.
+    // 3 times more memory required.
+    arrSize = (width - 1) * (height - 1) * 6;
+    indices.clear();
+    indices.resize(arrSize);
+    int i = 0;
+    for (int y = 0; y < height - 1; ++y) {
+        for (int x = 0; x < width - 1; ++x) {
+            indices[i++] = x + y * width;
+            indices[i++] = x + 1 + y * width;
+            indices[i++] = x + (y + 1) * width;
+
+            indices[i++] = x + 1 + y * width;
+            indices[i++] = x + 1 + (y + 1) * width;
+            indices[i++] = x + (y + 1) * width;
         }
     }
-
 
     std::unordered_map<std::string, Texture*> newTextures = std::unordered_map<std::string, Texture*>();
 
@@ -877,18 +894,10 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->SetGraphicsRootSignature(m_TerrainPipelineState->GetRootSignature().Get());
     commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
-    XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
-    SetGraphics32BitConstants(1, heightWidth, commandList);
-
-    auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
-
-    commandList->SetGraphicsRootDescriptorTable(3, m_ShadowMap->Srv());
-
     // Terrain
     for (int i = 0; i < m_Terrain.size(); i++)
     {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
 
@@ -900,6 +909,17 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         Mat matrices;
         ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
         SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+        XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
+        SetGraphics32BitConstants(1, heightWidth, commandList);
+
+        auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+        commandList->SetGraphicsRootDescriptorTable(3, m_ShadowMap->Srv());
+
+        //matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
+        SetGraphicsDynamicConstantBuffer(4, matrices, commandList, m_UploadBuffer.get());
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }

@@ -16,7 +16,7 @@ class Device;
 class PSOTerrain
 {
 public:
-	PSOTerrain(std::wstring vertexName, std::wstring pixelName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth = true);
+	PSOTerrain(std::wstring vertexName, std::wstring pixelName, std::wstring hullName, std::wstring domainName, D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool useDepth = true);
 
 	/// <summary>
 	/// Returns a pointer to the pipeline state object
@@ -41,5 +41,7 @@ private:
 
 	ComPtr<ID3DBlob> m_vertexShader;
 	ComPtr<ID3DBlob> m_pixelShader;
+	ComPtr<ID3DBlob> m_hullShader;
+	ComPtr<ID3DBlob> m_domainShader;
 };
 
