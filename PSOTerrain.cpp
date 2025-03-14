@@ -78,7 +78,7 @@ void PSOTerrain::CreateRootSignature()
 	CD3DX12_DESCRIPTOR_RANGE1 descRangeDomain[1];
 	descRangeDomain[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2); // Heightmap for domain shader
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[6];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[7];
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 
 	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -89,6 +89,9 @@ void PSOTerrain::CreateRootSignature()
 	// Domain Shader
 	rootParameter[4].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
 	rootParameter[5].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
+
+	// Hull Shader
+	rootParameter[6].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
