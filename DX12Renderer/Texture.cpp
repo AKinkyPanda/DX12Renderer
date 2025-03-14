@@ -57,7 +57,7 @@ Texture::~Texture()
 	//m_data = nullptr;
 }
 
-void* Texture::GetTexture()
+void* Texture::GetTexture() const
 {
 	return (void*)m_data->m_texture.Get();
 }

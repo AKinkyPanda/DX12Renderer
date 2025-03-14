@@ -31,6 +31,8 @@ using namespace Microsoft::WRL;
 #include "../Light.h"
 #include "../DirectXColors.h"
 #include "DirectXTex.h"
+#include "stb_image.h"
+
 
 using namespace DirectX;
 
@@ -239,28 +241,32 @@ bool Tutorial2::LoadContent()
         }
     }
 
-    int stripSize = width * 2;
-    int numStrips = height - 1;
-    UINT newArrSize = stripSize * numStrips + (numStrips - 1) * 4; // degenerate triangles
+    // Create a vertex buffer
+    float mHeightScale = (float)width / 4.0f;
+    int tessFactor = 4;
+    int scalePatchX = width / tessFactor;
+    int scalePatchY = height / tessFactor;
+
+    unsigned char* textureData = static_cast<unsigned char*>(Heightmap->GetTexture());
+
+    int IMwidth, IMheight, IMchannels = 0;
+    std::vector<uint8_t> buffer = ReadBinaryFile("../../Assets/Textures/Heightmap.png");
+    unsigned char* data = stbi_load_from_memory(buffer.data(), static_cast<int>(buffer.size()), &IMwidth, &IMheight, &IMchannels, 4);
+    std::vector<uint8_t> imageData = std::vector<uint8_t>(data, data + width * height * 4);
+
+
+    // create a vertex array 1/4 the size of the height map in each dimension,
+    // to be stretched over the height map
+    arrSize = (int)(scalePatchX * scalePatchY);
+    vertices.clear();
+    vertices.resize(arrSize);
+    for (int y = 0; y < scalePatchY; ++y) {
+        for (int x = 0; x < scalePatchX; ++x) {
+            vertices[y * scalePatchX + x].Position = XMFLOAT3((float)x * tessFactor, data[(y * width * tessFactor + x * tessFactor) * 4] * mHeightScale,(float)y * tessFactor);
+        }
+    }
 
     std::vector<UINT> indices = std::vector<UINT>();
-    //indices.resize(newArrSize);
-    //int i = 0;
-
-    //for (int s = 0; s < numStrips; ++s) {
-    //    int m = 0;
-    //    for (int n = 0; n < width; ++n) {
-    //        m = n + s * width;
-    //        indices[i++] = m + width;
-    //        indices[i++] = m;
-    //    }
-    //    if (s < numStrips - 1) { // create indices for degenerate triangles to get us back to the start.
-    //        indices[i++] = m;
-    //        indices[i++] = m - width + 1;
-    //        indices[i++] = m - width + 1;
-    //        indices[i++] = m - width + 1;
-    //    }
-    //}
 
     // switched to triangle list instead of strip.
     // 3 times more memory required.
@@ -277,6 +283,23 @@ bool Tutorial2::LoadContent()
             indices[i++] = x + 1 + y * width;
             indices[i++] = x + 1 + (y + 1) * width;
             indices[i++] = x + (y + 1) * width;
+        }
+    }
+
+    arrSize = (scalePatchX - 1) * (scalePatchY - 1) * 4;
+    indices.clear();
+    indices.resize(arrSize);    
+    i = 0;
+    for (int y = 0; y < scalePatchY - 1; ++y) {
+        for (int x = 0; x < scalePatchX - 1; ++x) {
+            UINT vert0 = x + y * scalePatchX;
+            UINT vert1 = x + 1 + y * scalePatchX;
+            UINT vert2 = x + (y + 1) * scalePatchX;
+            UINT vert3 = x + 1 + (y + 1) * scalePatchX;
+            indices[i++] = vert0;
+            indices[i++] = vert1;
+            indices[i++] = vert2;
+            indices[i++] = vert3;
         }
     }
 
@@ -897,7 +920,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     // Terrain
     for (int i = 0; i < m_Terrain.size(); i++)
     {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
 
@@ -920,6 +943,9 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         //matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
         SetGraphicsDynamicConstantBuffer(4, matrices, commandList, m_UploadBuffer.get());
+
+        commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }

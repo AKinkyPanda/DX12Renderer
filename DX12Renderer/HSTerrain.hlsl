@@ -18,11 +18,11 @@ struct HS_CONTROL_POINT_OUTPUT
 // Output patch constant data.
 struct HS_CONSTANT_DATA_OUTPUT
 {
-    float EdgeTessFactor[3]         : SV_TessFactor; // e.g. would be [4] for a quad domain
-    float InsideTessFactor          : SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
+    float EdgeTessFactor[4]         : SV_TessFactor; // e.g. would be [4] for a quad domain
+    float InsideTessFactor[2]          : SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
 };
  
-#define NUM_CONTROL_POINTS 3
+#define NUM_CONTROL_POINTS 4
  
 // Patch Constant Function
 HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
@@ -35,15 +35,17 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
     output.EdgeTessFactor[0] = 4;
     output.EdgeTessFactor[1] = 4;
     output.EdgeTessFactor[2] = 4;
-    output.InsideTessFactor = 4; 
+    output.EdgeTessFactor[3] = 4;
+    output.InsideTessFactor[0] = 4; 
+    output.InsideTessFactor[1] = 4; 
  
     return output;
 }
  
-[domain("tri")]
+[domain("quad")]
 [partitioning("fractional_even")]
 [outputtopology("triangle_cw")]
-[outputcontrolpoints(3)]
+[outputcontrolpoints(4)]
 [patchconstantfunc("CalcHSPatchConstants")]
 HS_CONTROL_POINT_OUTPUT main( 
     InputPatch<VS_OUTPUT, NUM_CONTROL_POINTS> ip, 
@@ -55,6 +57,7 @@ HS_CONTROL_POINT_OUTPUT main(
     // Insert code to compute Output here
     output.pos = ip[i].pos;
     output.norm = ip[i].norm;
+    output.UV = ip[i].UV;
  
     return output;
 }

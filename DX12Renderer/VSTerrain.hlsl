@@ -36,11 +36,7 @@ VertexOutput main(float3 input : POSITION)
     VertexOutput output;
  
     float scale = heightWidth.x / 4;
-    //float4 mysample = heightmap.Load(int3(input));
-    float xCoord = input.x / heightWidth.x;
-    float zCoord = input.z / heightWidth.y;
-    float4 mysample = heightmap.Load(int3(xCoord * heightWidth.x, zCoord * heightWidth.y, 0));
-    float4 worldPos = float4(input.x, mysample.r * scale, input.z, 1.0f);
+    float4 worldPos = float4(input.x, 0, input.z, 1.0f);
     output.WorldPos = worldPos;
     output.UV = float2(input.x / heightWidth.x, input.z / heightWidth.y);
     //output.PosH = mul(Matrices.ModelViewProjectionMatrix, worldPos);

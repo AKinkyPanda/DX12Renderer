@@ -6,11 +6,15 @@ struct Mat
     matrix ModelViewProjectionMatrix;
 };
 
-cbuffer MatCB : register(b0)
+cbuffer MatCB : register(b2)
 {
     Mat Matrices;
 }
- 
+
+Texture2D<float4> heightmap : register(t2);
+
+SamplerState hmsampler : register(s0);
+
 struct DS_OUTPUT
 {
     float4 pos : SV_POSITION;
@@ -30,38 +34,41 @@ struct HS_CONTROL_POINT_OUTPUT
 // Output patch constant data.
 struct HS_CONSTANT_DATA_OUTPUT
 {
-    float EdgeTessFactor[3]         : SV_TessFactor; // e.g. would be [4] for a quad domain
-    float InsideTessFactor          : SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
+    float EdgeTessFactor[4]         : SV_TessFactor; // e.g. would be [4] for a quad domain
+    float InsideTessFactor[2]          : SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
 };
  
-#define NUM_CONTROL_POINTS 3
+#define NUM_CONTROL_POINTS 4
  
-[domain("tri")]
+[domain("quad")]
 DS_OUTPUT main(
     HS_CONSTANT_DATA_OUTPUT input,
-    float3 domain : SV_DomainLocation,
+    float2 domain : SV_DomainLocation,
     const OutputPatch<HS_CONTROL_POINT_OUTPUT, NUM_CONTROL_POINTS> patch)
 {
     DS_OUTPUT output;
- 
-    output.pos = float4(patch[0].pos.xyz*domain.x+patch[1].pos.xyz*domain.y+patch[2].pos.xyz*domain.z,1);
-    //output.pos = mul(output.pos, Matrices.ModelViewProjectionMatrix);
+
+    float2 bottomUV = lerp(patch[0].UV, patch[1].UV, domain.x);
+    float2 topUV    = lerp(patch[2].UV, patch[3].UV, domain.x);
+    float2 interpolatedUV = lerp(bottomUV, topUV, domain.y);
+
+    // ***changed from barycentric to (u,v) coordinates. Now need to use bilinear interpolation to find the new points.
+    float4 bottom = lerp(patch[0].pos, patch[1].pos, domain.x);
+    float4 top    = lerp(patch[2].pos, patch[3].pos, domain.x);
+    float4 interpolatedWorldPos = lerp(bottom, top, domain.y);
+
+    // Remove hardcoded values
+    float scale = 1024.0f / 4.0f;
+    float displacement = heightmap.SampleLevel(hmsampler, interpolatedUV, 0.0).r;
+    interpolatedWorldPos.y += displacement * scale;
+    
+    output.WorldPos = interpolatedWorldPos;
+     
+    output.pos = output.WorldPos;
     output.pos = mul(Matrices.ModelViewProjectionMatrix, output.pos);
 
-    //float4 worldPos = float4(patch[0].WorldPos.xyz * domain.x +
-    //                      patch[1].WorldPos.xyz * domain.y +
-    //                      patch[2].WorldPos.xyz * domain.z, 1.0);
-    //output.pos = mul(Matrices.ModelViewProjectionMatrix, worldPos);
+    output.norm = lerp(lerp(patch[0].norm, patch[1].norm, domain.x), lerp(patch[2].norm, patch[3].norm, domain.x), domain.y);
+    output.UV = interpolatedUV;
 
-        // Interpolate world positions from the control points
-    float4 interpolatedWorldPos = patch[0].pos * domain.x +
-                                  patch[1].pos * domain.y +
-                                  patch[2].pos * domain.z;
-    
-    // Apply the MVP matrix once to get the final clip-space position
-    output.pos = mul(Matrices.ModelViewProjectionMatrix, interpolatedWorldPos);
-
-    output.norm = float4(patch[0].norm.xyz*domain.x + patch[1].norm.xyz*domain.y + patch[2].norm.xyz*domain.z, 1);
- 
     return output;
 }

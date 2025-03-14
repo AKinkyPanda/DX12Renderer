@@ -14,7 +14,7 @@ public:
 	Texture() = default;
 	Texture(std::string path, std::vector<uint8_t> data, XMFLOAT2 imageSize);
 	~Texture();
-	void* GetTexture();
+	void* GetTexture() const;
 	std::string GetPath() const;
 	XMFLOAT2 GetSize() const;
 

@@ -38,7 +38,6 @@ std::vector<int32_t> CompressMaterialIndices(const std::vector<int32_t>& materia
 const Texture* LoadTexture(const std::string& filePath);
 void UploadTexture(const std::string& filePath, const std::vector<uint8_t>& data, const XMFLOAT2& imageSize);
 bool DoesFileExist(const std::string& filePath);
-std::vector<uint8_t> ReadBinaryFile(const std::string& _filePath);
 
 
 std::vector<Mesh> LoadObjModel(const std::string& filePath)
