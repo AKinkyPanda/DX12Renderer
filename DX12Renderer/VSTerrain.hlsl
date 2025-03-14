@@ -38,9 +38,13 @@ VertexOutput main(float3 input : POSITION)
     float scale = heightWidth.x / 4;
     float4 worldPos = float4(input.x, 0, input.z, 1.0f);
     output.WorldPos = worldPos;
+    float2 uv = float2(input.x / heightWidth.x, input.z / heightWidth.y);
+    float4 sample = heightmap.Load(int3(uv * float2(heightWidth.x, heightWidth.y), 0));
+    worldPos = float4(input.x, sample.r * scale, input.z, 1.0f);
+    output.WorldPos = mul(Matrices.ModelViewProjectionMatrix, worldPos);
     output.UV = float2(input.x / heightWidth.x, input.z / heightWidth.y);
     //output.PosH = mul(Matrices.ModelViewProjectionMatrix, worldPos);
-    output.PosH = worldPos;
+    output.PosH = float4(input.x, 0, input.z, 1.0f);
  
     // calculate vertex normal from heightmap
     float zb = heightmap.Load(int3(input.xz + int2(0, -1), 0)).r * scale;
