@@ -268,28 +268,10 @@ bool Tutorial2::LoadContent()
 
     std::vector<UINT> indices = std::vector<UINT>();
 
-    // switched to triangle list instead of strip.
-    // 3 times more memory required.
-    arrSize = (width - 1) * (height - 1) * 6;
-    indices.clear();
-    indices.resize(arrSize);
-    int i = 0;
-    for (int y = 0; y < height - 1; ++y) {
-        for (int x = 0; x < width - 1; ++x) {
-            indices[i++] = x + y * width;
-            indices[i++] = x + 1 + y * width;
-            indices[i++] = x + (y + 1) * width;
-
-            indices[i++] = x + 1 + y * width;
-            indices[i++] = x + 1 + (y + 1) * width;
-            indices[i++] = x + (y + 1) * width;
-        }
-    }
-
     arrSize = (scalePatchX - 1) * (scalePatchY - 1) * 4;
     indices.clear();
     indices.resize(arrSize);    
-    i = 0;
+    int i = 0;
     for (int y = 0; y < scalePatchY - 1; ++y) {
         for (int x = 0; x < scalePatchX - 1; ++x) {
             UINT vert0 = x + y * scalePatchX;
