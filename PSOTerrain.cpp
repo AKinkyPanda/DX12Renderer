@@ -73,25 +73,35 @@ void PSOTerrain::CreateRootSignature()
 
 	CD3DX12_DESCRIPTOR_RANGE1 descRange[2];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // Heightmap
-	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1); // Shadow Map Texture
+	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4); // Shadow Map Texture
 
 	CD3DX12_DESCRIPTOR_RANGE1 descRangeDomain[1];
 	descRangeDomain[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2); // Heightmap for domain shader
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[7];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[13];
+	// Vertex Shader
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
+	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX); // Terrain data
 
-	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+	// Pixel Shader
+	rootParameter[2].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_ALL); // Heightmap for all shaders
 
-	rootParameter[2].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameter[3].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light  properties
+	rootParameter[4].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Camera position
+	rootParameter[5].InitAsConstants(sizeof(XMMATRIX) / 4, 3, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light view projection matrix
 
-	// Domain Shader
-	rootParameter[4].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
-	rootParameter[5].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[6].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Point lights
+	rootParameter[7].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Spotlights
+	rootParameter[8].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Directional lights
+
+	rootParameter[9].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
 	// Hull Shader
-	rootParameter[6].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
+	rootParameter[10].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
+
+	// Domain Shader
+	rootParameter[11].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[12].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
@@ -176,8 +186,8 @@ void PSOTerrain::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type, bool us
 	CD3DX12_RASTERIZER_DESC rasterizer{ CD3DX12_DEFAULT() };
 	rasterizer.FrontCounterClockwise = TRUE;
 	rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-	//rasterizer.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterizer.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	rasterizer.FillMode = D3D12_FILL_MODE_SOLID;
+	//rasterizer.FillMode = D3D12_FILL_MODE_WIREFRAME;
 
 	//DXGI_SAMPLE_DESC sampler{};
 	//sampler.Count = 1;

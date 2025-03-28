@@ -27,6 +27,7 @@ struct VertexOutput
 {
     float4 PosH : SV_POSITION;
     float4 WorldPos : POSITION1;
+    //float4 ShadowPos : POSITION2;
     float4 Normal : NORMAL;
     float2 UV : TEXCOORD;
 };

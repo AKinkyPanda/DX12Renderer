@@ -739,10 +739,16 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_SkyBoxMesh.GetIndexList().size()), 1, 0, 0, 0);
 
     /* //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    *   SKY BOX END
-    */ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    *  
+    */ //
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///
+    // 
+    ///                                                             FIX translation not being tied to model but hardcoded here
+
+       ///
+    // 
+    ///   
     // SHADOW MAP START
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -772,7 +778,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
 
-        XMMATRIX translationMatrix = XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, -5000); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -782,13 +788,14 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
+    // Test Mesh
     for (int i = 0; i < m_meshes.size(); i++)
     {
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_meshes[i].GetIndexBuffer()));
 
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 2000); //XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 5000); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -796,6 +803,24 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
         SetGraphics32BitConstants(1, lightWorld, commandList);
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
+    }
+
+    // Terrain
+    for (int i = 0; i < m_Terrain.size(); i++)
+    {
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
+        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
+
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
+        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        XMFLOAT4X4 lightWorld;
+        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
+        SetGraphics32BitConstants(1, lightWorld, commandList);
+
+        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
     // Change back to GENERIC_READ so we can read the texture in a shader.
@@ -852,7 +877,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
 
-        XMMATRIX translationMatrix = XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, - 5000); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -874,7 +899,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_meshes[i].GetIndexBuffer()));
 
         // Draw sponza
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 2000); //XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 5000); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -906,7 +931,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
 
-        XMMATRIX translationMatrix = XMMatrixTranslation(-500, -500, -2000); //XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0,0,0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -921,14 +946,21 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
         commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
-        commandList->SetGraphicsRootDescriptorTable(3, m_ShadowMap->Srv());
+        SetGraphics32BitConstants(3, lightProps, commandList);
+        SetGraphics32BitConstants(4, CameraPos, commandList);
+        SetGraphics32BitConstants(5, m_LightViewProj, commandList);
 
-        //matrices.ModelViewProjectionMatrix = viewProjectionMatrix;
-        SetGraphicsDynamicConstantBuffer(4, matrices, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(6, m_PointLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(7, m_SpotLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(8, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        commandList->SetGraphicsRootDescriptorTable(9, m_ShadowMap->Srv());
 
-        SetGraphics32BitConstants(6, CameraPos, commandList);
+        SetGraphics32BitConstants(10, CameraPos, commandList);
+
+        SetGraphicsDynamicConstantBuffer(11, matrices, commandList, m_UploadBuffer.get());
+
+        commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }
