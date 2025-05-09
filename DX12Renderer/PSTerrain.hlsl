@@ -303,7 +303,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float slope = acos(input.Normal.y);
     float4 textureColor;
 
-    float2 scaledUV = input.UV * 32.0f; //input.WorldPos.xz * 0.05f;
+    float2 scaledUV = input.UV * 32.0f; //input.WorldPos.xz * 0.05f; - Adjust if necessary to 16, 64, etc. in the future if this looks off.
     textureColor = height_and_slope_based_color(input.WorldPos.y - 2000, slope - 0.2, scaledUV);
 
     float3 N = normalize( input.Normal );
