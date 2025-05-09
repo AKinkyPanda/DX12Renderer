@@ -611,7 +611,7 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
         XMStoreFloat4(&l.DirectionVS, directionVS);
 
         l.Color = XMFLOAT4(LightColors[0]);
-        l.Intensity = 5.0f;
+        l.Intensity = 3.0f;
     }
 
     ComputeLightSpaceMatrix();

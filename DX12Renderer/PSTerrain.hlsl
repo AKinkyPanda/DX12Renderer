@@ -118,7 +118,7 @@ float4 height_and_slope_based_color(float height, float slope, float2 UV) {
     //float4 grass = float4(0.22f, 0.52f, 0.11f, 1.0f);
     float4 grass = float4(GrassTex.Sample(colorSampler, UV).rgb, 1);
     //float4 dirt = float4(0.35f, 0.20f, 0.0f, 1.0f);
-    float4 dirt = BlendTex.Sample(colorSampler, UV).rgba;
+    float4 dirt = float4(BlendTex.Sample(colorSampler, UV).rgb, 1);
     float4 rock = float4(0.42f, 0.42f, 0.52f, 1.0f);
     float4 snow = float4(0.8f, 0.8f, 0.8f, 1.0f);
  
@@ -303,7 +303,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float slope = acos(input.Normal.y);
     float4 textureColor;
 
-    float2 scaledUV = input.WorldPos.xz * 0.05f;
+    float2 scaledUV = input.UV * 32.0f; //input.WorldPos.xz * 0.05f;
     textureColor = height_and_slope_based_color(input.WorldPos.y - 2000, slope - 0.2, scaledUV);
 
     float3 N = normalize( input.Normal );
