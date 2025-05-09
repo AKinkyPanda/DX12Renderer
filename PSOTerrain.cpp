@@ -71,14 +71,17 @@ void PSOTerrain::CreateRootSignature()
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	CD3DX12_DESCRIPTOR_RANGE1 descRange[2];
+	CD3DX12_DESCRIPTOR_RANGE1 descRange[5];
 	descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // Heightmap
 	descRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4); // Shadow Map Texture
+	descRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5); // Grass Texture
+	descRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6); // Blend Texture
+	descRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7); // Rock Texture
 
 	CD3DX12_DESCRIPTOR_RANGE1 descRangeDomain[1];
 	descRangeDomain[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2); // Heightmap for domain shader
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[13];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[16];
 	// Vertex Shader
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX); // Terrain data
@@ -94,23 +97,31 @@ void PSOTerrain::CreateRootSignature()
 	rootParameter[7].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Spotlights
 	rootParameter[8].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Directional lights
 
-	rootParameter[9].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[9].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL); // Shadow Map Texture
+	rootParameter[10].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL); // Grass Texture
+	rootParameter[11].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL); // Blend Texture
+	rootParameter[12].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL); // Rock Texture
 
 	// Hull Shader
-	rootParameter[10].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
+	rootParameter[13].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
 
 	// Domain Shader
-	rootParameter[11].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
-	rootParameter[12].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[14].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[15].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
 
 
-	CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
+	CD3DX12_STATIC_SAMPLER_DESC heightmapSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
+	CD3DX12_STATIC_SAMPLER_DESC colorSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+
 	CD3DX12_STATIC_SAMPLER_DESC shadowSampler(
-		1, // shaderRegister
+		2, // shaderRegister
 		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, // filter
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
@@ -121,7 +132,7 @@ void PSOTerrain::CreateRootSignature()
 		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
 
 
-	std::array<CD3DX12_STATIC_SAMPLER_DESC, 2> staticSamplers = { sampler, shadowSampler };
+	std::array<CD3DX12_STATIC_SAMPLER_DESC, 3> staticSamplers = { heightmapSampler, colorSampler, shadowSampler };
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init_1_1(_countof(rootParameter), rootParameter, staticSamplers.size(), staticSamplers.data(), rootSignatureFlags);

@@ -19,8 +19,10 @@ struct DS_OUTPUT
 {
     float4 pos : SV_POSITION;
     float4 WorldPos : POSITION1;
+    float4 ShadowPos : POSITION2;
     float4 norm : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
  
 // Output control point
@@ -29,6 +31,7 @@ struct HS_CONTROL_POINT_OUTPUT
     float4 pos : POSITION0;
     float4 norm : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
  
 // Output patch constant data.
@@ -66,6 +69,11 @@ DS_OUTPUT main(
      
     output.pos = output.WorldPos;
     output.pos = mul(Matrices.ModelViewProjectionMatrix, output.pos);
+
+    float4 shadowPos = mul(output.WorldPos, Matrices.ModelMatrix);
+    output.ShadowPos = float4(shadowPos.xyz, 1);
+
+    output.FragPos = mul( Matrices.ModelViewMatrix, interpolatedWorldPos);
 
     output.norm = lerp(lerp(patch[0].norm, patch[1].norm, domain.x), lerp(patch[2].norm, patch[3].norm, domain.x), domain.y);
     output.UV = interpolatedUV;

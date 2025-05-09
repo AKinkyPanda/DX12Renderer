@@ -8,8 +8,10 @@ struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
     float4 WorldPos : POSITION1;
+    float4 ShadowPos : POSITION2;
     float4 norm : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
 
 // Output control point
@@ -18,6 +20,7 @@ struct HS_CONTROL_POINT_OUTPUT
     float4 pos : POSITION0;
     float4 norm : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
  
 // Output patch constant data.

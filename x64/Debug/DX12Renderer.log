@@ -1,2 +1,8 @@
-﻿  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\VSTerrain.cso
+﻿D:\Git\DX12Renderer\DX12Renderer\PSTerrain.hlsl(309,12-40): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PSTerrain.hlsl(310,26-47): warning X3206: implicit truncation of vector type
+D:\Git\DX12Renderer\DX12Renderer\PSTerrain.hlsl(106,5): warning X4000: use of potentially uninitialized variable (slope_based_color)
+D:\Git\DX12Renderer\DX12Renderer\PSTerrain.hlsl(135,5): warning X4000: use of potentially uninitialized variable (height_and_slope_based_color)
+D:\Git\DX12Renderer\DX12Renderer\PSTerrain.hlsl(106,5): warning X4000: use of potentially uninitialized variable (slope_based_color)
+  
+  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\PSTerrain.cso
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe

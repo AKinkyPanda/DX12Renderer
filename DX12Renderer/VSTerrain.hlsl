@@ -27,9 +27,10 @@ struct VertexOutput
 {
     float4 PosH : SV_POSITION;
     float4 WorldPos : POSITION1;
-    //float4 ShadowPos : POSITION2;
+    float4 ShadowPos : POSITION2;
     float4 Normal : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
 
 VertexOutput main(float3 input : POSITION)
@@ -46,6 +47,12 @@ VertexOutput main(float3 input : POSITION)
     output.UV = float2(input.x / heightWidth.x, input.z / heightWidth.y);
     //output.PosH = mul(Matrices.ModelViewProjectionMatrix, worldPos);
     output.PosH = float4(input.x, 0, input.z, 1.0f);
+    //output.PosH = mul(Matrices.ModelViewMatrix, worldPos);
+
+    float4 shadowPos = mul(worldPos, Matrices.ModelMatrix);
+    output.ShadowPos = float4(shadowPos.xyz, 1);
+
+    output.FragPos = mul( Matrices.ModelViewMatrix, worldPos);
  
     // calculate vertex normal from heightmap
     float zb = heightmap.Load(int3(input.xz + int2(0, -1), 0)).r * scale;

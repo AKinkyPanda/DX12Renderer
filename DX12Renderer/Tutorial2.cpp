@@ -287,6 +287,11 @@ bool Tutorial2::LoadContent()
 
     std::unordered_map<std::string, Texture*> newTextures = std::unordered_map<std::string, Texture*>();
 
+    // Terrain textures
+    m_TerrainGrassTexture = LoadTextureIndependant("../../Assets/Textures/Terrain/grass.jpg");
+    m_TerrainBlendTexture = LoadTextureIndependant("../../Assets/Textures/Terrain/Blend-Rock-Grass.jpg");
+    m_TerrainRockTexture = LoadTextureIndependant("../../Assets/Textures/Terrain/Rock.jpg");
+
     newTextures.emplace(std::make_pair("Heightmap", const_cast<Texture*>(Heightmap)));
 
     m_Terrain = std::vector<Mesh>();
@@ -298,6 +303,8 @@ bool Tutorial2::LoadContent()
     tempTerrain.CreateBuffers();
 
     m_Terrain.push_back(tempTerrain);
+
+    newTextures.clear();
 
     ///////////////////////////////////////////////////////////////
     // SKY TEXTURE
@@ -956,11 +963,15 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
         commandList->SetGraphicsRootDescriptorTable(9, m_ShadowMap->Srv());
 
-        SetGraphics32BitConstants(10, CameraPos, commandList);
+        commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainGrassTexture->m_descriptorIndex));
+        commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainBlendTexture->m_descriptorIndex));
+        commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainRockTexture->m_descriptorIndex));
 
-        SetGraphicsDynamicConstantBuffer(11, matrices, commandList, m_UploadBuffer.get());
+        SetGraphics32BitConstants(13, CameraPos, commandList);
 
-        commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        SetGraphicsDynamicConstantBuffer(14, matrices, commandList, m_UploadBuffer.get());
+
+        commandList->SetGraphicsRootDescriptorTable(15, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }

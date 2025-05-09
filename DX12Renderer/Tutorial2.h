@@ -157,6 +157,9 @@ private:
     // Heightmap / Terrain
     std::vector<Mesh> m_Terrain;
     std::shared_ptr<PSOTerrain> m_TerrainPipelineState;
+    const Texture* m_TerrainGrassTexture;
+    const Texture* m_TerrainBlendTexture;
+    const Texture* m_TerrainRockTexture;
 
     // Skybox
     Mesh m_SkyBoxMesh;

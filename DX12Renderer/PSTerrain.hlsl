@@ -2,8 +2,10 @@ struct PixelShaderInput
 {
 	float4 PosH : SV_Position;
     float4 WorldPos : POSITION1;
+    float4 ShadowPos : POSITION2;
 	float4 Normal : NORMAL;
     float2 UV : TEXCOORD;
+    float3 FragPos : COLOR0;
 };
 
 struct PointLight
@@ -90,9 +92,13 @@ StructuredBuffer<DirectionalLight> DirectionalLights : register( t3 );
 
 Texture2D<float4> heightmap : register(t0);
 Texture2D<float4> ShadowMap : register(t4);
+Texture2D<float4> GrassTex : register(t5);
+Texture2D<float4> BlendTex : register(t6);
+Texture2D<float4> RockTex : register(t7);
 
 SamplerState hmsampler : register(s0);
-SamplerComparisonState ShadowSampler : register(s1);
+SamplerState colorSampler : register(s1);
+SamplerComparisonState ShadowSampler : register(s2);
 
 float4 slope_based_color(float slope, float4 colorSteep, float4 colorFlat) {
     if (slope < 0.25f) {
@@ -107,10 +113,12 @@ float4 slope_based_color(float slope, float4 colorSteep, float4 colorFlat) {
         return colorSteep;
     }
 }
-
-float4 height_and_slope_based_color(float height, float slope) {
-    float4 grass = float4(0.22f, 0.52f, 0.11f, 1.0f);
-    float4 dirt = float4(0.35f, 0.20f, 0.0f, 1.0f);
+// ----------------------------------------------------------------------------
+float4 height_and_slope_based_color(float height, float slope, float2 UV) {
+    //float4 grass = float4(0.22f, 0.52f, 0.11f, 1.0f);
+    float4 grass = float4(GrassTex.Sample(colorSampler, UV).rgb, 1);
+    //float4 dirt = float4(0.35f, 0.20f, 0.0f, 1.0f);
+    float4 dirt = BlendTex.Sample(colorSampler, UV).rgba;
     float4 rock = float4(0.42f, 0.42f, 0.52f, 1.0f);
     float4 snow = float4(0.8f, 0.8f, 0.8f, 1.0f);
  
@@ -149,6 +157,7 @@ float4 height_and_slope_based_color(float height, float slope) {
     // get rock/snow values
     return slope_based_color(slope, rock, snow);
 }
+// ----------------------------------------------------------------------------
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
     float a = roughness*roughness;
@@ -267,7 +276,7 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
 float3 ComputeDirectionalLight(DirectionalLight L, Material mat, float3 normal, float3 toEye)
 {
     // The light vector aims opposite the direction the light rays travel.
-    float3 lightVec = L.DirectionVS;
+    float3 lightVec = normalize(L.DirectionWS.xyz); //L.DirectionVS;
 
     // Scale light down by Lambert's cosine law.
     float ndotl = max(dot(lightVec, normal), 0.0f);
@@ -294,15 +303,16 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float slope = acos(input.Normal.y);
     float4 textureColor;
 
-    textureColor = height_and_slope_based_color(input.WorldPos.y - 2000, slope);
+    float2 scaledUV = input.WorldPos.xz * 0.05f;
+    textureColor = height_and_slope_based_color(input.WorldPos.y - 2000, slope - 0.2, scaledUV);
 
     float3 N = normalize( input.Normal );
-    float3 V = normalize(camPos - input.PosH);
-    float3 F0 = float3(0.04, 0.04, 0.04);
+    float3 V = normalize(camPos - input.FragPos);
+    float3 F0 = float3(0.0, 0.0, 0.0); //Probably change this to PBR and stuff
 
     float shadowFactor = 0;
     //shadowFactor = ShadowCalculation(float4(IN.WorldPos, 1.0f), N);
-    float4 shadowPosH = mul(float4(input.WorldPos.xyz, 1.0f), gLightViewProj);
+    float4 shadowPosH = mul(float4(input.ShadowPos.xyz, 1.0f), gLightViewProj);
     shadowFactor = CalcShadowFactor(shadowPosH);
 
     float3 result = 0.0f;
@@ -319,5 +329,5 @@ float4 main(PixelShaderInput input) : SV_TARGET
     //float4 debugColor = float4(input.WorldPos.xyz * 0.001, 1.0);  // Scale down for visibility
     //return debugColor;
      
-    return float4(saturate((result * textureColor) + (result * ambient)), 1.0f);
+    return float4(saturate((result * textureColor.rgb) + (result * ambient)), 1.0f);
 }
