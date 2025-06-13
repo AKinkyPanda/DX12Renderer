@@ -186,7 +186,7 @@ bool Tutorial2::LoadContent()
 
     Application::Get().SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, std::make_shared<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, UINT(65536), true));
     Application::Get().SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, std::make_shared<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, Application::Get().GetWindowByName(L"DX12RenderWindowClass")->GetBufferCount(), false));
-    Application::Get().SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, std::make_shared<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false));
+    Application::Get().SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, std::make_shared<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16, false));
 
     // Create the descriptor heap for the depth-stencil view.
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
@@ -199,6 +199,7 @@ bool Tutorial2::LoadContent()
     m_SkyboxPipelineState = std::make_shared<PSOSkybox>(L"VSSkybox", L"PSSkybox", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_ShadowMapPipelineState = std::make_shared<PSOShadowMap>(L"VSShadowMap", L"PSShadowMap", D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_TerrainPipelineState = std::make_shared<PSOTerrain>(L"VSTerrain", L"PSTerrain", L"HSTerrain", L"DSTerrain", D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
+    m_TerrainShadowMapPipelineState = std::make_shared<PSOTerrainShadowMap>(L"VSTerrain", L"HSTerrainShadowMap", L"DSTerrainShadowMap", D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
 
     m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
 
@@ -227,6 +228,26 @@ bool Tutorial2::LoadContent()
 
     const Texture* Heightmap = LoadTextureIndependant("../../Assets/Textures/Heightmap.png");
 
+    std::vector<float> noiseData = GenerateHeightmap(FastNoiseLite::NoiseType::NoiseType_Perlin, 1024, 1024);
+    std::vector<uint8_t> imageData(noiseData.size() * 4); // RGBA for each pixel
+
+    for (size_t i = 0; i < noiseData.size(); ++i)
+    {
+        // Remap from [-1,1] to [0,1]
+        float normalized = (noiseData[i] + 1.0f) * 0.5f;
+
+        // Clamp to [0, 255]
+        uint8_t height = static_cast<uint8_t>(std::clamp(normalized * 255.0f, 0.0f, 255.0f));
+
+        // Fill RGBA
+        imageData[i * 4 + 0] = height;
+        imageData[i * 4 + 1] = height;
+        imageData[i * 4 + 2] = height;
+        imageData[i * 4 + 3] = 255; // Fully opaque
+    }
+
+    const Texture* Heightmap2 = new Texture(imageData, XMFLOAT2(1024, 1024));
+
     const int height = 1024;
     const int width = 1024;
 
@@ -247,12 +268,12 @@ bool Tutorial2::LoadContent()
     int scalePatchX = width / tessFactor;
     int scalePatchY = height / tessFactor;
 
-    unsigned char* textureData = static_cast<unsigned char*>(Heightmap->GetTexture());
+    //unsigned char* textureData = static_cast<unsigned char*>(Heightmap->GetTexture());
 
-    int IMwidth, IMheight, IMchannels = 0;
-    std::vector<uint8_t> buffer = ReadBinaryFile("../../Assets/Textures/Heightmap.png");
-    unsigned char* data = stbi_load_from_memory(buffer.data(), static_cast<int>(buffer.size()), &IMwidth, &IMheight, &IMchannels, 4);
-    std::vector<uint8_t> imageData = std::vector<uint8_t>(data, data + width * height * 4);
+    //int IMwidth, IMheight, IMchannels = 0;
+    //std::vector<uint8_t> buffer = ReadBinaryFile("../../Assets/Textures/Heightmap.png");
+    //unsigned char* data = stbi_load_from_memory(buffer.data(), static_cast<int>(buffer.size()), &IMwidth, &IMheight, &IMchannels, 4);
+    //std::vector<uint8_t> imageData = std::vector<uint8_t>(data, data + width * height * 4);
 
 
     // create a vertex array 1/4 the size of the height map in each dimension,
@@ -262,7 +283,21 @@ bool Tutorial2::LoadContent()
     vertices.resize(arrSize);
     for (int y = 0; y < scalePatchY; ++y) {
         for (int x = 0; x < scalePatchX; ++x) {
-            vertices[y * scalePatchX + x].Position = XMFLOAT3((float)x * tessFactor, data[(y * width * tessFactor + x * tessFactor) * 4] * mHeightScale,(float)y * tessFactor);
+            //vertices[y * scalePatchX + x].Position = XMFLOAT3((float)x * tessFactor, data[(y * width * tessFactor + x * tessFactor) * 4] * mHeightScale,(float)y * tessFactor);
+
+            int sampleX = x * tessFactor;
+            int sampleY = y * tessFactor;
+            int noiseIndex = sampleY * width + sampleX;
+
+            // Normalize Perlin noise to [0,1]
+            float height = (noiseData[noiseIndex] + 1.0f) * 0.5f;
+            height *= mHeightScale;
+
+            vertices[y * scalePatchX + x].Position = XMFLOAT3(
+                static_cast<float>(x) * tessFactor,
+                height,
+                static_cast<float>(y) * tessFactor
+            );
         }
     }
 
@@ -292,7 +327,7 @@ bool Tutorial2::LoadContent()
     m_TerrainBlendTexture = LoadTextureIndependant("../../Assets/Textures/Terrain/Blend-Rock-Grass.jpg");
     m_TerrainRockTexture = LoadTextureIndependant("../../Assets/Textures/Terrain/Rock.jpg");
 
-    newTextures.emplace(std::make_pair("Heightmap", const_cast<Texture*>(Heightmap)));
+    newTextures.emplace(std::make_pair("Heightmap", const_cast<Texture*>(Heightmap2)));
 
     m_Terrain = std::vector<Mesh>();
     Mesh tempTerrain = Mesh();
@@ -361,6 +396,24 @@ bool Tutorial2::LoadContent()
         ShadowSRVHeap->GetCPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
         ShadowSRVHeap->GetGPUHandleAt(m_ShadowMapGPUSRVDescriptorIndex),
         ShadowDSVHeap->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
+
+    ///////////////////////////////////////////////////////////////
+    // TERRAIN SHADOW MAP
+    ///////////////////////////////////////////////////////////////
+
+    //std::shared_ptr<DescriptorHeap> TerrainShadowSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    //std::shared_ptr<DescriptorHeap> TerrainShadowDSVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+    m_TerrainShadowMap = std::make_unique<ShadowMap>(device.Get(), 2048, 2048);
+
+    UINT m_TerrainShadowMapCPUSRVDescriptorIndex = ShadowSRVHeap->GetNextIndex();
+    UINT m_TerrainShadowMapGPUSRVDescriptorIndex = m_TerrainShadowMapCPUSRVDescriptorIndex;
+    UINT m_TerrainShadowMapCPUDSVDescriptorIndex = ShadowDSVHeap->GetNextIndex();
+
+    m_TerrainShadowMap->BuildDescriptors(
+        ShadowSRVHeap->GetCPUHandleAt(m_TerrainShadowMapCPUSRVDescriptorIndex),
+        ShadowSRVHeap->GetGPUHandleAt(m_TerrainShadowMapGPUSRVDescriptorIndex),
+        ShadowDSVHeap->GetCPUHandleAt(m_TerrainShadowMapCPUDSVDescriptorIndex));
 
     m_ContentLoaded = true;
 
@@ -756,7 +809,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
        ///
     // 
     ///   
-    // SHADOW MAP START
+    //                                                                               SHADOW MAP START
+    // 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     commandList->RSSetViewports(1, &m_ShadowMap->Viewport());
@@ -764,7 +818,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
 
     // Change to DEPTH_WRITE.
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+        D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));    
 
     commandList->OMSetRenderTargets(0, nullptr, false, &m_ShadowMap->Dsv());
 
@@ -812,10 +866,34 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
+    // Change back to GENERIC_READ so we can read the texture in a shader.
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));   
+
+
+    commandList->RSSetViewports(1, &m_TerrainShadowMap->Viewport());
+    commandList->RSSetScissorRects(1, &m_TerrainShadowMap->ScissorRect());
+
+    // Change to DEPTH_WRITE.
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_TerrainShadowMap->Resource(),
+        D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+
+    // Transition texture to the correct state for use in the pixel shader
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+
+    commandList->OMSetRenderTargets(0, nullptr, false, &m_TerrainShadowMap->Dsv());
+
+    commandList->ClearDepthStencilView(m_TerrainShadowMap->Dsv(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+    commandList->SetPipelineState(m_TerrainShadowMapPipelineState->GetPipelineState().Get());
+    commandList->SetGraphicsRootSignature(m_TerrainShadowMapPipelineState->GetRootSignature().Get());
+    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
+
     // Terrain
     for (int i = 0; i < m_Terrain.size(); i++)
     {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
         commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
         commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
 
@@ -823,15 +901,37 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        XMFLOAT4X4 lightWorld;
-        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
-        SetGraphics32BitConstants(1, lightWorld, commandList);
+
+        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+        //XMFLOAT4X4 lightWorld;
+        //XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
+        //SetGraphics32BitConstants(1, lightWorld, commandList);
+
+        XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
+        SetGraphics32BitConstants(1, heightWidth, commandList);
+
+        auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+        SetGraphics32BitConstants(3, CameraPos, commandList);
+
+        SetGraphicsDynamicConstantBuffer(4, matrices, commandList, m_UploadBuffer.get());
+
+        commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+        SetGraphics32BitConstants(6, lightViewProj, commandList);
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }
 
+    // Transition texture to the correct state for use out of the pixel shader
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    
     // Change back to GENERIC_READ so we can read the texture in a shader.
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_TerrainShadowMap->Resource(),
         D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -961,7 +1061,7 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         SetGraphicsDynamicStructuredBuffer(7, m_SpotLights, commandList, m_UploadBuffer.get());
         SetGraphicsDynamicStructuredBuffer(8, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(9, m_ShadowMap->Srv());
+        commandList->SetGraphicsRootDescriptorTable(9, m_TerrainShadowMap->Srv());
 
         commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainGrassTexture->m_descriptorIndex));
         commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainBlendTexture->m_descriptorIndex));
@@ -1310,6 +1410,34 @@ VertexPosColor Tutorial2::MidPoint(const VertexPosColor& v0, const VertexPosColo
     XMStoreFloat2(&v.TexCoord, tex);
 
     return v;
+}
+
+std::vector<float> Tutorial2::GenerateHeightmap(FastNoiseLite::NoiseType noiseType, int width, int height)
+{
+    m_Noise.SetNoiseType(noiseType);
+    m_Noise.SetFrequency(0.4f);
+
+    m_Noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    m_Noise.SetFractalOctaves(4);       // Try 3–6 octaves
+    m_Noise.SetFractalLacunarity(2.0f); // Controls frequency increase per octave
+    m_Noise.SetFractalGain(0.5f);       // Controls amplitude reduction per octave
+
+    std::vector<float> data(width * height);
+
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            float fx = (float)x / (float)width;
+            float fy = (float)y / (float)height;
+
+            // Example Perlin or FBM noise function
+            float noiseVal = m_Noise.GetNoise(fx * 10.0f, fy * 10.0f);
+            data[y * width + x] = noiseVal;
+        }
+    }
+
+    return data;
 }
 
 /*

@@ -167,6 +167,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="PSOShadowMap.cpp" />
     <ClCompile Include="PSOSkybox.cpp" />
     <ClCompile Include="PSOTerrain.cpp" />
+    <ClCompile Include="PSOTerrainShadowMap.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
@@ -182,6 +183,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="DX12Renderer\DXAccess.h" />
     <ClInclude Include="DX12Renderer\DXInternal.h" />
     <ClInclude Include="DX12Renderer\Events.h" />
+    <ClInclude Include="DX12Renderer\FastNoiseLite.h" />
     <ClInclude Include="DX12Renderer\Game.h" />
     <ClInclude Include="DX12Renderer\Helpers.h" />
     <ClInclude Include="DX12Renderer\HighResolutionClock.h" />
@@ -200,6 +202,7 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="PSOShadowMap.h" />
     <ClInclude Include="PSOSkybox.h" />
     <ClInclude Include="PSOTerrain.h" />
+    <ClInclude Include="PSOTerrainShadowMap.h" />
     <ClInclude Include="ShadowMap.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
@@ -207,7 +210,13 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <FxCompile Include="DX12Renderer\DSTerrain.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Domain</ShaderType>
     </FxCompile>
+    <FxCompile Include="DX12Renderer\DSTerrainShadowMap.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Domain</ShaderType>
+    </FxCompile>
     <FxCompile Include="DX12Renderer\HSTerrain.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Hull</ShaderType>
+    </FxCompile>
+    <FxCompile Include="DX12Renderer\HSTerrainShadowMap.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Hull</ShaderType>
     </FxCompile>
     <FxCompile Include="DX12Renderer\PixelShader.hlsl">

@@ -14,6 +14,9 @@
 #include "../UploadBuffer.h"
 #include "../ShadowMap.h"
 #include "../PSOTerrain.h"
+#include "../PSOTerrainShadowMap.h"
+
+#include "FastNoiseLite.h"
 
 class Mesh;
 
@@ -79,6 +82,8 @@ public:
 
     void Subdivide(MeshData& meshData);
     VertexPosColor MidPoint(const VertexPosColor& v0, const VertexPosColor& v1);
+
+    std::vector<float> Tutorial2::GenerateHeightmap(FastNoiseLite::NoiseType noiseType, int width, int height);
 
     //Descriptor Heap for textures
     std::shared_ptr<ID3D12DescriptorHeap> m_SRVHeap;
@@ -160,6 +165,16 @@ private:
     const Texture* m_TerrainGrassTexture;
     const Texture* m_TerrainBlendTexture;
     const Texture* m_TerrainRockTexture;
+
+    // Terrain Shadow Map
+    std::unique_ptr<ShadowMap> m_TerrainShadowMap;
+    uint32_t m_TerrainShadowMapCPUSRVDescriptorIndex;
+    uint32_t m_TerrainShadowMapGPUSRVDescriptorIndex;
+    uint32_t m_TerrainShadowMapCPUDSVDescriptorIndex;
+    std::shared_ptr<PSOTerrainShadowMap> m_TerrainShadowMapPipelineState;
+
+    // Terrain Noise Heihtmap
+    FastNoiseLite m_Noise;
 
     // Skybox
     Mesh m_SkyBoxMesh;

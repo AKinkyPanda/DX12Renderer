@@ -81,6 +81,9 @@
     <ClCompile Include="PSOTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PSOTerrainShadowMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX12Renderer\Window.h">
@@ -176,6 +179,12 @@
     <ClInclude Include="PSOTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PSOTerrainShadowMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12Renderer\FastNoiseLite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DX12Renderer\PixelShader.hlsl" />
@@ -188,6 +197,8 @@
     <FxCompile Include="DX12Renderer\VSTerrain.hlsl" />
     <FxCompile Include="DX12Renderer\HSTerrain.hlsl" />
     <FxCompile Include="DX12Renderer\DSTerrain.hlsl" />
+    <FxCompile Include="DX12Renderer\HSTerrainShadowMap.hlsl" />
+    <FxCompile Include="DX12Renderer\DSTerrainShadowMap.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
