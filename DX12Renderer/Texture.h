@@ -13,6 +13,7 @@ class Texture
 public:
 	Texture() = default;
 	Texture(std::string path, std::vector<uint8_t> data, XMFLOAT2 imageSize);
+	Texture(const std::vector<uint8_t>& data, XMFLOAT2 imageSize);
 	~Texture();
 	void* GetTexture() const;
 	std::string GetPath() const;
