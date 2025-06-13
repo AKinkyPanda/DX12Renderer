@@ -10,7 +10,7 @@ Camera::Camera()
     , m_vFoV(45.0f)
     , m_AspectRatio(1.0f)
     , m_zNear(0.1f)
-    , m_zFar(10000.0f)
+    , m_zFar(1000.0f)
 {
     pData = (AlignedData*)_aligned_malloc(sizeof(AlignedData), 16);
     pData->m_Translation = XMVectorZero();
