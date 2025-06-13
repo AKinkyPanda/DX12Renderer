@@ -210,7 +210,7 @@ float ShadowCalculation(float4 posWorld, float3 normal)
     return (depth <= shadowDepth + 0.001) ? 1.0 : 0.5; // Shadow Bias
 }
 // ----------------------------------------------------------------------------
-float CalcShadowFactor(float4 shadowPosH)
+float CalcShadowFactor(float4 shadowPosH, float3 normal, float3 lightDir)
 {
     // Complete projection by doing division by w.
     shadowPosH.xyz /= shadowPosH.w;
@@ -220,6 +220,10 @@ float CalcShadowFactor(float4 shadowPosH)
 
     // Depth in NDC space.
     float depth = shadowPosH.z;
+
+    // Apply depth bias to fix shadow acne / peter-panning.
+    float bias = max(0.001f * (1.0f - dot(normal, lightDir)), 0.0005f); 
+    depth -= bias;
 
     uint width, height, numMips;
     ShadowMap.GetDimensions(0, width, height, numMips);
@@ -313,7 +317,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float shadowFactor = 0;
     //shadowFactor = ShadowCalculation(float4(IN.WorldPos, 1.0f), N);
     float4 shadowPosH = mul(float4(input.ShadowPos.xyz, 1.0f), gLightViewProj);
-    shadowFactor = CalcShadowFactor(shadowPosH);
+    shadowFactor = CalcShadowFactor(shadowPosH, N, DirectionalLights[0].DirectionWS.xyz);
 
     float3 result = 0.0f;
     Material mat = { float4(textureColor.xyz, 1), F0, 0.0f };
