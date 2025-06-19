@@ -24,6 +24,9 @@ public:
     Mesh GetMesh();
     XMFLOAT3 GetWorldPosition() const;
 
+    inline XMINT2 GetChunk() { return XMINT2(m_chunkX, m_chunkZ); }
+    inline int GetChunkSize() { return m_size; }
+
     // Optional if you're reusing identity scaling/rotation
     inline XMMATRIX GetWorldMatrix() const {
         return XMMatrixTranslation(m_position.x, m_position.y, m_position.z);

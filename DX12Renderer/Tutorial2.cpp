@@ -343,7 +343,7 @@ bool Tutorial2::LoadContent()
 
     m_Terrain.push_back(tempTerrain);
 
-    m_TerrainChunkManager = TerrainChunkManager(1024, 50);
+    m_TerrainChunkManager = TerrainChunkManager(1024, 1024 / 4);
 
     newTextures.clear();
 
@@ -928,16 +928,21 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
         SetGraphics32BitConstants(1, heightWidth, commandList);
 
+        XMFLOAT4 chunkData = XMFLOAT4(0, 0, 0, 0);
+        SetGraphics32BitConstants(2, chunkData, commandList);
+
         auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
-        SetGraphics32BitConstants(3, CameraPos, commandList);
+        SetGraphics32BitConstants(4, CameraPos, commandList);
 
-        SetGraphicsDynamicConstantBuffer(4, matrices, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicConstantBuffer(5, matrices, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(5, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
 
-        SetGraphics32BitConstants(6, lightViewProj, commandList);
+        SetGraphics32BitConstants(7, lightViewProj, commandList);
+
+        //SetGraphics32BitConstants(8, chunkData, commandList);
 
         commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
     }
@@ -1106,8 +1111,8 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
         //XMMATRIX world = chunk->GetWorldMatrix(); // Based on chunk grid pos
-        XMMATRIX translationMatrix = XMMatrixTranslation(chunk->GetWorldPosition().x, chunk->GetWorldPosition().y, chunk->GetWorldPosition().z); //XMMatrixIdentity();
-        //XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
+        //XMMATRIX translationMatrix = XMMatrixTranslation(chunk->GetWorldPosition().x, chunk->GetWorldPosition().y, chunk->GetWorldPosition().z); //XMMatrixIdentity();
+        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -1121,32 +1126,37 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
         SetGraphics32BitConstants(1, heightWidth, commandList);
 
+        XMFLOAT4 chunkData = XMFLOAT4(chunk->GetChunk().x, chunk->GetChunk().y, (chunk->GetChunkSize() / 4 - 1) * 4, (chunk->GetChunkSize() / 4 - 1) * 4);
+        SetGraphics32BitConstants(2, chunkData, commandList);
+
         //auto descriptorIndexHeightmap = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
         auto descriptorIndexHeightmap = chunk->GetMesh().GetTextureList()["Heightmap"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
+        commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
 
-        SetGraphics32BitConstants(3, lightProps, commandList);
-        SetGraphics32BitConstants(4, CameraPos, commandList);
-        SetGraphics32BitConstants(5, m_LightViewProj, commandList);
+        SetGraphics32BitConstants(4, lightProps, commandList);
+        SetGraphics32BitConstants(5, CameraPos, commandList);
+        SetGraphics32BitConstants(6, m_LightViewProj, commandList);
 
-        SetGraphicsDynamicStructuredBuffer(6, m_PointLights, commandList, m_UploadBuffer.get());
-        SetGraphicsDynamicStructuredBuffer(7, m_SpotLights, commandList, m_UploadBuffer.get());
-        SetGraphicsDynamicStructuredBuffer(8, m_DirectionalLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(7, m_PointLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(8, m_SpotLights, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicStructuredBuffer(9, m_DirectionalLights, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(9, m_TerrainShadowMap->Srv());
+        commandList->SetGraphicsRootDescriptorTable(10, m_TerrainShadowMap->Srv());
 
         auto descriptorIndexGrass = m_Terrain[0].GetTextureList()["Grass"]->m_descriptorIndex;
         auto descriptorIndexBlend = m_Terrain[0].GetTextureList()["Blend"]->m_descriptorIndex;
         auto descriptorIndexRock = m_Terrain[0].GetTextureList()["Rock"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexGrass));
-        commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexBlend));
-        commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexRock));
+        commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexGrass));
+        commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexBlend));
+        commandList->SetGraphicsRootDescriptorTable(13, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexRock));
 
-        SetGraphics32BitConstants(13, CameraPos, commandList);
+        SetGraphics32BitConstants(14, CameraPos, commandList);
 
-        SetGraphicsDynamicConstantBuffer(14, matrices, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicConstantBuffer(15, matrices, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(15, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
+        commandList->SetGraphicsRootDescriptorTable(16, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
+
+        SetGraphics32BitConstants(17, chunkData, commandList);
 
         // Let the Mesh handle setting vertex/index buffers and issuing draw
         chunk->GetMesh().Draw(commandList, D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);

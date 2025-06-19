@@ -16,6 +16,11 @@ cbuffer HeightWidth : register(b1)
     float4 heightWidth;
 }
 
+cbuffer ChunkOffset : register(b2)
+{
+    float4 chunkOffset;
+}
+
 Texture2D<float4> heightmap : register(t0);
 
 struct VertexInput
@@ -36,6 +41,11 @@ struct VertexOutput
 VertexOutput main(float3 input : POSITION)
 {
     VertexOutput output;
+
+    float chunkOffsetX = chunkOffset.x * chunkOffset.z;
+    float chunkOffsetZ = chunkOffset.y * chunkOffset.z;
+
+    float2 globalPosXZ = float2(input.x + chunkOffsetX, input.z + chunkOffsetZ); // Add chunk offset
  
     float scale = heightWidth.x / 4;
     float4 worldPos = float4(input.x, 0, input.z, 1.0f);

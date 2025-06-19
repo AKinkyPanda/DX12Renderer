@@ -81,33 +81,35 @@ void PSOTerrain::CreateRootSignature()
 	CD3DX12_DESCRIPTOR_RANGE1 descRangeDomain[1];
 	descRangeDomain[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2); // Heightmap for domain shader
 
-	CD3DX12_ROOT_PARAMETER1 rootParameter[16];
+	CD3DX12_ROOT_PARAMETER1 rootParameter[18];
 	// Vertex Shader
 	rootParameter[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX); // MVP & Model
 	rootParameter[1].InitAsConstants(sizeof(XMVECTOR) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX); // Terrain data
+	rootParameter[2].InitAsConstants(sizeof(XMFLOAT4) / 4, 2, 0, D3D12_SHADER_VISIBILITY_VERTEX); // Chunk Data
 
 	// Pixel Shader
-	rootParameter[2].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_ALL); // Heightmap for all shaders
+	rootParameter[3].InitAsDescriptorTable(1, &descRange[0], D3D12_SHADER_VISIBILITY_ALL); // Heightmap for all shaders
 
-	rootParameter[3].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light  properties
-	rootParameter[4].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Camera position
-	rootParameter[5].InitAsConstants(sizeof(XMMATRIX) / 4, 3, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light view projection matrix
+	rootParameter[4].InitAsConstants(sizeof(LightProperties) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light  properties
+	rootParameter[5].InitAsConstants(sizeof(XMVECTOR) / 4, 2, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Camera position
+	rootParameter[6].InitAsConstants(sizeof(XMMATRIX) / 4, 3, 0, D3D12_SHADER_VISIBILITY_PIXEL); // Light view projection matrix
 
-	rootParameter[6].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Point lights
-	rootParameter[7].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Spotlights
-	rootParameter[8].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Directional lights
+	rootParameter[7].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Point lights
+	rootParameter[8].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Spotlights
+	rootParameter[9].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL); // Directional lights
 
-	rootParameter[9].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL); // Shadow Map Texture
-	rootParameter[10].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL); // Grass Texture
-	rootParameter[11].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL); // Blend Texture
-	rootParameter[12].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL); // Rock Texture
+	rootParameter[10].InitAsDescriptorTable(1, &descRange[1], D3D12_SHADER_VISIBILITY_PIXEL); // Shadow Map Texture
+	rootParameter[11].InitAsDescriptorTable(1, &descRange[2], D3D12_SHADER_VISIBILITY_PIXEL); // Grass Texture
+	rootParameter[12].InitAsDescriptorTable(1, &descRange[3], D3D12_SHADER_VISIBILITY_PIXEL); // Blend Texture
+	rootParameter[13].InitAsDescriptorTable(1, &descRange[4], D3D12_SHADER_VISIBILITY_PIXEL); // Rock Texture
 
 	// Hull Shader
-	rootParameter[13].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
+	rootParameter[14].InitAsConstants(sizeof(XMVECTOR) / 4, 3, 0, D3D12_SHADER_VISIBILITY_HULL);
 
 	// Domain Shader
-	rootParameter[14].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
-	rootParameter[15].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[15].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[16].InitAsDescriptorTable(1, &descRangeDomain[0], D3D12_SHADER_VISIBILITY_DOMAIN);
+	rootParameter[17].InitAsConstants(sizeof(XMFLOAT4) / 4, 3, 0, D3D12_SHADER_VISIBILITY_DOMAIN); // Chunk Data
 
 
 	CD3DX12_STATIC_SAMPLER_DESC heightmapSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, 
