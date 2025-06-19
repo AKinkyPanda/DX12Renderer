@@ -58,7 +58,7 @@ Texture::Texture(const std::vector<uint8_t>& data, XMFLOAT2 imageSize)
 
     ComPtr<ID3D12Device2> device = Application::Get().GetDevice();
     auto SRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    auto commands = Application::Get().GetCommandQueue();
+    auto commands = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
     // Describe the texture resource
     D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -79,8 +79,13 @@ Texture::Texture(const std::vector<uint8_t>& data, XMFLOAT2 imageSize)
     // Fill in subresource
     D3D12_SUBRESOURCE_DATA subresource = {};
     subresource.pData = data.data();
-    subresource.RowPitch = static_cast<LONG_PTR>(imageSize.x) * sizeof(uint32_t);
-    subresource.SlicePitch = static_cast<LONG_PTR>(imageSize.x) * imageSize.y * sizeof(uint32_t);
+    //subresource.RowPitch = static_cast<LONG_PTR>(imageSize.x) * sizeof(uint32_t);
+    //subresource.SlicePitch = static_cast<LONG_PTR>(imageSize.x) * imageSize.y * sizeof(uint32_t);
+    UINT rowPitch = static_cast<UINT>(imageSize.x) * sizeof(uint32_t);
+    UINT slicePitch = rowPitch * static_cast<UINT>(imageSize.y);
+
+    subresource.RowPitch = rowPitch;
+    subresource.SlicePitch = slicePitch;
 
     // Upload to GPU
     commands->UploadData(m_data->m_texture, subresource);
