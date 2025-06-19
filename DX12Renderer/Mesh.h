@@ -69,6 +69,9 @@ public:
 	Material& GetMaterial() { return m_material; }
 	void* GetVertexBuffer();
 	void* GetIndexBuffer();
+
+	void Draw(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, D3D_PRIMITIVE_TOPOLOGY topologyType);
+
 	void Shutdown();
 private:
 	void CreateVertexBuffer();

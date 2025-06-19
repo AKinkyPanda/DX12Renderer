@@ -134,6 +134,18 @@ void Mesh::CreateTexturesBuffer()
 
 }
 
+void Mesh::Draw(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, D3D_PRIMITIVE_TOPOLOGY topologyType)
+{
+	if (!m_vertexBuffer || !m_indexBuffer)
+		return;
+
+	commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->m_vertexView);
+	commandList->IASetIndexBuffer(&m_vertexBuffer->m_indexView);
+	commandList->IASetPrimitiveTopology(topologyType);
+
+	commandList->DrawIndexedInstanced(static_cast<UINT>(m_indexList.size()), 1, 0, 0, 0);
+}
+
 void Mesh::Shutdown()
 {
 	m_vertexBuffer->m_bufferResource.~ComPtr();
