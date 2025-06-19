@@ -15,6 +15,7 @@
 #include "../ShadowMap.h"
 #include "../PSOTerrain.h"
 #include "../PSOTerrainShadowMap.h"
+#include "../TerrainChunkManager.h"
 
 #include "FastNoiseLite.h"
 
@@ -161,6 +162,8 @@ private:
 
     // Heightmap / Terrain
     std::vector<Mesh> m_Terrain;
+    TerrainChunkManager m_TerrainChunkManager;
+    std::vector<float> m_HeightmapData;
     std::shared_ptr<PSOTerrain> m_TerrainPipelineState;
     const Texture* m_TerrainGrassTexture;
     const Texture* m_TerrainBlendTexture;

@@ -169,6 +169,8 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClCompile Include="PSOTerrain.cpp" />
     <ClCompile Include="PSOTerrainShadowMap.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
+    <ClCompile Include="TerrainChunk.cpp" />
+    <ClCompile Include="TerrainChunkManager.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +206,8 @@ dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.li
     <ClInclude Include="PSOTerrain.h" />
     <ClInclude Include="PSOTerrainShadowMap.h" />
     <ClInclude Include="ShadowMap.h" />
+    <ClInclude Include="TerrainChunk.h" />
+    <ClInclude Include="TerrainChunkManager.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <ItemGroup>
