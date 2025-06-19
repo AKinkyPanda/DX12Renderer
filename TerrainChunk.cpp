@@ -108,7 +108,7 @@ void TerrainChunk::Initialize(const std::vector<float>& /*unused global heightma
         FastNoiseLite::NoiseType_OpenSimplex2,
         m_chunkX, m_chunkZ,
         vertsPerSide, vertsPerSide,  // width=vertsPerSide
-        0.02f
+        0.04f
     );
 
     // (Optional) upload heightmapLocal into a texture of size 256x256 if needed.

@@ -485,8 +485,14 @@ void Tutorial2::ResizeDepthBuffer(int width, int height)
 
 void Tutorial2::ComputeLightSpaceMatrix()
 {
-    XMFLOAT3 centerBoundingSphere = XMFLOAT3(0.0f, 0.0f, 0.0f);
-    float radiusBoundingSphere = 2000;
+    // Terrain
+    XMVECTOR CameraPos = m_Camera.get_Translation();
+
+    XMFLOAT3 CameraPosition; //the float where we copy the up vector members
+    XMStoreFloat3(&CameraPosition, CameraPos); //the function used to copy
+
+    XMFLOAT3 centerBoundingSphere = CameraPosition; //XMFLOAT3(0.0f, 0.0f, 0.0f);
+    float radiusBoundingSphere = 4000;
 
     XMFLOAT3 lightDir = XMFLOAT3(0, -1, 1);
     XMVECTOR lightdir = XMLoadFloat3(&lightDir);
@@ -680,8 +686,6 @@ void Tutorial2::OnUpdate(UpdateEventArgs& e)
 
     XMFLOAT3 v2F; //the float where we copy the up vector members
     XMStoreFloat3(&v2F, CameraPos); //the function used to copy
-    v2F.x = 0.0f; // manipulate the v2F members
-    CameraPos = XMLoadFloat3(&v2F); // copy back the v2F to up
 
     m_TerrainChunkManager.UpdateChunks(v2F, m_HeightmapData, 1024, m_Terrain[0].GetTextureList());
 }
@@ -895,8 +899,14 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
     // Transition texture to the correct state for use in the pixel shader
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+    //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+
+    for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
+    {
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(chunk->GetMesh().GetTextureList()["Heightmap"]->GetTexture()),
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    }
 
     commandList->OMSetRenderTargets(0, nullptr, false, &m_TerrainShadowMap->Dsv());
 
@@ -907,49 +917,94 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
     // Terrain
-    for (int i = 0; i < m_Terrain.size(); i++)
-    {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
-        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
+    //for (int i = 0; i < m_Terrain.size(); i++)
+    //{
+    //    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+    //    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
+    //    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
 
+    //    XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
+    //    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
+    //    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+    //    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+
+    //    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+    //    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+
+    //    //XMFLOAT4X4 lightWorld;
+    //    //XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
+    //    //SetGraphics32BitConstants(1, lightWorld, commandList);
+
+    //    XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
+    //    SetGraphics32BitConstants(1, heightWidth, commandList);
+
+    //    XMFLOAT4 chunkData = XMFLOAT4(0, 0, 0, 0);
+    //    SetGraphics32BitConstants(2, chunkData, commandList);
+
+    //    auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
+    //    commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+    //    SetGraphics32BitConstants(4, CameraPos, commandList);
+
+    //    SetGraphicsDynamicConstantBuffer(5, matrices, commandList, m_UploadBuffer.get());
+
+    //    commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+
+    //    SetGraphics32BitConstants(7, lightViewProj, commandList);
+
+    //    //SetGraphics32BitConstants(8, chunkData, commandList);
+
+    //    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
+    //}
+
+    for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
+    {
+        //XMMATRIX world = chunk->GetWorldMatrix(); // Based on chunk grid pos
+        //XMMATRIX translationMatrix = XMMatrixTranslation(chunk->GetWorldPosition().x, chunk->GetWorldPosition().y, chunk->GetWorldPosition().z); //XMMatrixIdentity();
         XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
         XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
         XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        Mat matrices;
+        ComputeMatrices(worldMatrix, viewMatrix, viewMatrix * projectionMatrix, matrices);
 
-        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
+        // Set camera, light, textures, etc...
         SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-        //XMFLOAT4X4 lightWorld;
-        //XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
-        //SetGraphics32BitConstants(1, lightWorld, commandList);
+        // Set root descriptors for terrain heightmap, textures...
 
         XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
         SetGraphics32BitConstants(1, heightWidth, commandList);
 
-        XMFLOAT4 chunkData = XMFLOAT4(0, 0, 0, 0);
+        XMFLOAT4 chunkData = XMFLOAT4(chunk->GetChunk().x, chunk->GetChunk().y, (chunk->GetChunkSize() / 4 - 1) * 4, (chunk->GetChunkSize() / 4 - 1) * 4);
         SetGraphics32BitConstants(2, chunkData, commandList);
 
-        auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        //auto descriptorIndexHeightmap = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
+        auto descriptorIndexHeightmap = chunk->GetMesh().GetTextureList()["Heightmap"]->m_descriptorIndex;
+        commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
 
         SetGraphics32BitConstants(4, CameraPos, commandList);
 
         SetGraphicsDynamicConstantBuffer(5, matrices, commandList, m_UploadBuffer.get());
 
-        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
+        commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
 
         SetGraphics32BitConstants(7, lightViewProj, commandList);
 
-        //SetGraphics32BitConstants(8, chunkData, commandList);
+        SetGraphics32BitConstants(8, chunkData, commandList);
 
-        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
+        // Let the Mesh handle setting vertex/index buffers and issuing draw
+        chunk->GetMesh().Draw(commandList, D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
     }
 
     // Transition texture to the correct state for use out of the pixel shader
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
+    //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+    for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
+    {
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(chunk->GetMesh().GetTextureList()["Heightmap"]->GetTexture()),
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    }
     
     // Change back to GENERIC_READ so we can read the texture in a shader.
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_TerrainShadowMap->Resource(),

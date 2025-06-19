@@ -8,8 +8,10 @@ void TerrainChunkManager::UpdateChunks(const XMFLOAT3& cameraPosition, const std
     //int cameraChunkX = (int)(cameraPosition.x / (m_chunkSize - 1));
     //int cameraChunkZ = (int)(cameraPosition.z / (m_chunkSize - 1));
 
-    int cameraChunkX = static_cast<int>(std::floor(cameraPosition.x / float(m_chunkSize - 1)));
-    int cameraChunkZ = static_cast<int>(std::floor(cameraPosition.z / float(m_chunkSize - 1)));
+    m_visibleSize = (m_chunkSize / m_tessFactor - 1) * m_tessFactor;
+
+    int cameraChunkX = static_cast<int>(std::floor(cameraPosition.x / float(m_visibleSize)));
+    int cameraChunkZ = static_cast<int>(std::floor(cameraPosition.z / float(m_visibleSize)));
 
     m_activeChunks.clear();
 

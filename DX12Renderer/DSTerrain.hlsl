@@ -82,12 +82,26 @@ DS_OUTPUT main(
     output.pos = output.WorldPos;
     output.pos = mul(Matrices.ModelViewProjectionMatrix, output.pos);
 
-    float4 shadowPos = mul(output.WorldPos, Matrices.ModelMatrix);
+    float4 shadowPos = output.WorldPos; //mul(output.WorldPos, Matrices.ModelMatrix);
     output.ShadowPos = float4(shadowPos.xyz, 1);
 
     output.FragPos = mul( Matrices.ModelViewMatrix, interpolatedWorldPos);
 
-    output.norm = lerp(lerp(patch[0].norm, patch[1].norm, domain.x), lerp(patch[2].norm, patch[3].norm, domain.x), domain.y);
+    // Normal calculation
+    float2 localUV = worldUV;
+    float eps = 1.0 / 1024; // texel step
+    float hC = displacement;
+    float hL = heightmap.SampleLevel(hmsampler, localUV + float2(-eps,0), 0).r;
+    float hR = heightmap.SampleLevel(hmsampler, localUV + float2(eps,0), 0).r;
+    float hD = heightmap.SampleLevel(hmsampler, localUV + float2(0,-eps), 0).r;
+    float hU = heightmap.SampleLevel(hmsampler, localUV + float2(0,eps), 0).r;
+    // convert these to world units if needed: e.g. (hR - hL)*heightScale, etc.
+    float3 tangent = float3(2.0/1024 * 1024, (hR - hL)*1024, 0);
+    float3 bitangent = float3(0, (hU - hD)*256, 2.0/1024 * 1024);
+    float3 normal = normalize(cross(bitangent, tangent));
+
+    output.norm = float4(normal, 1);
+    //output.norm = lerp(lerp(patch[0].norm, patch[1].norm, domain.x), lerp(patch[2].norm, patch[3].norm, domain.x), domain.y);
     output.UV = worldUV;
 
     return output;

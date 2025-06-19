@@ -16,6 +16,11 @@ cbuffer cbLightViewProj : register(b0)
     matrix gLightViewProj;
 };
 
+cbuffer ChunkOffset : register(b3)
+{
+    float4 chunkOffset;
+}
+
 Texture2D<float4> heightmap : register(t2);
 
 SamplerState hmsampler : register(s0);
@@ -67,7 +72,14 @@ DS_OUTPUT main(
 
     // Remove hardcoded values
     float scale = 1024.0f / 4.0f;
-    float displacement = heightmap.SampleLevel(hmsampler, interpolatedUV, 0.0).r;
+
+    float2 worldUV = (interpolatedWorldPos.xz - (chunkOffset.xy * chunkOffset.zw)) / 1024;
+    //float2 worldUV = (interpolatedWorldPos.xz - chunkOffset.xy) / chunkOffset.zw;
+
+    // Sample from the chunk’s local heightmap texture
+    float displacement = heightmap.SampleLevel(hmsampler, worldUV, 0.0).r;
+
+    // Apply height
     interpolatedWorldPos.y += displacement * scale;
     
     output.WorldPos = interpolatedWorldPos;
@@ -81,7 +93,7 @@ DS_OUTPUT main(
     output.FragPos = mul( Matrices.ModelViewMatrix, interpolatedWorldPos);
 
     output.norm = lerp(lerp(patch[0].norm, patch[1].norm, domain.x), lerp(patch[2].norm, patch[3].norm, domain.x), domain.y);
-    output.UV = interpolatedUV;
+    output.UV = worldUV;
 
     output.pos = mul(interpolatedWorldPos, gLightViewProj);
 

@@ -296,12 +296,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float ambient = 0.1f;
     float3 color = float3(0.32f, 0.82f, 0.41f);
 
-    // Color presets
-    float4 grass = float4(0.22f, 0.52f, 0.11f, 1.0f);
-    float4 dirt = float4(0.35f, 0.20f, 0.0f, 1.0f);
-    float4 rock = float4(0.42f, 0.42f, 0.52f, 1.0f);
-    float4 snow = float4(0.8f, 0.8f, 0.8f, 1.0f);
-
     // Calculate the slope of this point.
     //float slope = 1.0f - input.Normal.y;
     float slope = acos(input.Normal.y);
@@ -325,15 +319,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
     Material mat = { float4(textureColor.xyz, 1), F0, 0.0f };
 
     result += ComputeDirectionalLight(DirectionalLights[0], mat, N, V) * shadowFactor;
-
-    //float4 camPos = float4(-4300, 2000, 1500, 1);
-    //float d = distance(input.WorldPos.xyz, camPos);
-    //return float4(saturate(d / 2000.0f), saturate(d / 2000.0f), saturate(d / 2000.0f), 1.0);
-
-    //return float4(input.WorldPos.y * 0.001, input.WorldPos.y * 0.001, input.WorldPos.y * 0.001, 1.0);
-
-    //float4 debugColor = float4(input.WorldPos.xyz * 0.001, 1.0);  // Scale down for visibility
-    //return debugColor;
      
     return float4(saturate((result * textureColor.rgb) + (result * ambient)), 1.0f);
 }

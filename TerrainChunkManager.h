@@ -34,6 +34,9 @@ private:
     float m_heightScale;
     int m_loadRadius = 3; // Radius in chunks
 
+    int   m_tessFactor = 4;   // e.g. 4
+    int   m_visibleSize;  // = (m_chunkSize/m_tessFactor - 1) * m_tessFactor
+
     FastNoiseLite m_Noise;
 };
 
