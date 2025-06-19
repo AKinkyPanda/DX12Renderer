@@ -186,9 +186,9 @@ void PSOTerrainShadowMap::CreatePipelineState(D3D12_PRIMITIVE_TOPOLOGY_TYPE type
 	rasterizer.FrontCounterClockwise = TRUE;
 	rasterizer.CullMode = D3D12_CULL_MODE_BACK;
 	rasterizer.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterizer.DepthBias = 100.0f;
+	rasterizer.DepthBias = 1500.0f;
 	rasterizer.DepthBiasClamp = 0.0f;
-	rasterizer.SlopeScaledDepthBias = 1.5f;
+	rasterizer.SlopeScaledDepthBias = 2.5f;
 
 	//DXGI_SAMPLE_DESC sampler{};
 	//sampler.Count = 1;
