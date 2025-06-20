@@ -1,2 +1,5 @@
-﻿  TerrainChunk.cpp
+﻿D:\Git\DX12Renderer\DX12Renderer\DSTerrain.hlsl(88,5-73): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\DSTerrain.cso
+  TerrainChunk.cpp
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe

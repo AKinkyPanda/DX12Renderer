@@ -221,7 +221,7 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap2(
             }
             // If maskPow == 0, we'll produce flat or slight rolling terrain below.
 
-            // === 2. Base mountain shape ===
+            // === Base mountain shape ===
             float baseShape = 0.0f;
             if (maskPow > 0.0f) {
                 // Simple low-frequency fBm:
@@ -242,17 +242,15 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap2(
             else {
                 // Optional slight rolling terrain on plains:
                 // e.g., a very low-amplitude noise so plains aren’t perfectly flat.
-                // Comment out or tune if undesired.
                 const float plainsFreq = 0.1f;
                 const float plainsAmp = 2.0f;
                 float plains = m_Noise.GetNoise(nx * plainsFreq, nz * plainsFreq) * plainsAmp;
                 baseShape = plains * (1.0f - maskPow); // maskPow==0 => full plains; maskPow>0 => reduce plains under mountains
             }
 
-            // === 3. Detail shape (slope-attenuated fBm) ===
+            // === Detail shape (slope-attenuated fBm) ===
             float detailShape = 0.0f;
             if (maskPow > 0.0f) {
-                // Call your existing FbmNoiseWithFD2 which returns normalized [-1,1]
                 float detailFbmNorm = FbmNoiseWithFD2(nx, nz,
                     detailOctaves,
                     detailLacunarity,
