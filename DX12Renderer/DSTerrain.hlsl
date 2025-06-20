@@ -82,7 +82,7 @@ DS_OUTPUT main(
     output.pos = output.WorldPos;
     output.pos = mul(Matrices.ModelViewProjectionMatrix, output.pos);
 
-    float4 shadowPos = output.WorldPos; //mul(output.WorldPos, Matrices.ModelMatrix);
+    float4 shadowPos = mul(output.WorldPos, Matrices.ModelMatrix);
     output.ShadowPos = float4(shadowPos.xyz, 1);
 
     output.FragPos = mul( Matrices.ModelViewMatrix, interpolatedWorldPos);
