@@ -167,7 +167,7 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap2(
 
     // === Parameters for layering ===
     // 2. Mask parameters: low-frequency mask to select mountain zones
-    const float maskFreq = 0.35f;    // relative to noise-space: adjust to world scale
+    const float maskFreq = 0.75f;    // relative to noise-space: adjust to world scale
     const float maskPower = 2.0f;     // raise [0,1] mask to this power to concentrate peaks
     const float maskThreshold = 0.0f; // optional: below this, treat as flat (0). Set <=0 to disable threshold.
 
@@ -182,9 +182,10 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap2(
     // 4. Detail fBm parameters: slope-attenuated fBm only in masked areas
     const int detailOctaves = 6;
     const float detailLacunarity = 2.0f;
-    const float detailGain = 0.3f;
-    const float detailAmpScale = 20.0f;
+    const float detailGain = 0.5f;
+    const float detailAmpScale = 60.0f;
     //    detailAmpScale: maximum magnitude of roughness added atop base shape.
+
     const float eps = 1e-3f;   // for finite differences in FbmNoiseWithFD2
     const float kAtten = 1.5f; // attenuation strength for slope-based erosion
 
@@ -263,8 +264,34 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap2(
             }
             // else detailShape remains 0
 
+            float tinyShape = 0.0f;
+            if (maskPow > 0.0f) {
+                // Call your existing FbmNoiseWithFD2 which returns normalized [-1,1]
+                float detailFbmNorm = FbmNoiseWithFD2(nx, nz,
+                    8,
+                    2.5,
+                    0.6f,
+                    eps,
+                    kAtten);
+                // Scale detail and apply mask so that detail fades near mountain edges
+                tinyShape = detailFbmNorm * 40 * maskPow;
+            }
+
+            float minisculeShape = 0.0f;
+            if (maskPow > 0.0f) {
+                // Call your existing FbmNoiseWithFD2 which returns normalized [-1,1]
+                float detailFbmNorm = FbmNoiseWithFD2(nx, nz,
+                    10,
+                    3.0f,
+                    0.8f,
+                    eps,
+                    kAtten);
+                // Scale detail and apply mask so that detail fades near mountain edges
+                minisculeShape = detailFbmNorm * 20 * maskPow;
+            }
+
             // === 4. Combine base shape + detail ===
-            float finalH = baseShape + detailShape;
+            float finalH = baseShape + detailShape + tinyShape + minisculeShape;
 
             // === 5. Normalize/mapping for heightmapLocal ===
             // We want heightmapLocal in [-1,1], since existing code does (val+1)*0.5 * heightScale for vertex Y.
