@@ -34,4 +34,5 @@ D:\Git\DX12Renderer\PSOTerrainShadowMap.cpp(190,25): warning C4244: '=': convers
   TerrainChunk.cpp
   TerrainChunkManager.cpp
   Generating Code...
+  LINK : D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe not found or not built by the last incremental link; performing full link
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe
