@@ -17,6 +17,9 @@ DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT amountOfDes
 	m_descriptorSize = device->GetDescriptorHandleIncrementSize(type);
 
 	m_maxDescriptorIndex = amountOfDescriptors - 1;
+
+	m_freeFlags.assign(m_maxDescriptorIndex, false);
+	m_nextFree = 0;
 }
 
 ComPtr<ID3D12DescriptorHeap> DescriptorHeap::GetDescriptorHeap()
@@ -31,15 +34,36 @@ UINT DescriptorHeap::GetDescriptorSize()
 
 UINT DescriptorHeap::GetNextIndex()
 {
-	if (m_descriptorIndex > m_maxDescriptorIndex)
+	UINT idx = UINT_MAX;
+	// 1) Try reuse from free list
+	if (!m_freeList.empty())
 	{
-		assert("Max amount of Descriptor Views within Descriptor Heap achieved!");
-		return 0;
+		idx = m_freeList.top();
+		m_freeList.pop();
+		m_freeFlags[idx] = false;
+		return idx;
 	}
+	// 2) Allocate new if within capacity
+	if (m_nextFree < m_maxDescriptorIndex)
+	{
+		idx = m_nextFree++;
+		// m_freeFlags[idx] is already false
+		return idx;
+	}
+	// 3) Out of descriptors
+	assert(!"DescriptorHeap: out of descriptors");
+	return UINT_MAX;
+}
 
-	UINT index = m_descriptorIndex;
-	m_descriptorIndex++;
-	return index;
+void DescriptorHeap::FreeIndex(UINT index)
+{
+	if (index >= m_maxDescriptorIndex)
+		return; // out of range
+	if (m_freeFlags[index])
+		return; // already freed
+	// Mark free and push to free-list
+	m_freeFlags[index] = true;
+	m_freeList.push(index);
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(UINT index)

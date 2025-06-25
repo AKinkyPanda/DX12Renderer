@@ -103,6 +103,34 @@ Texture::Texture(const std::vector<uint8_t>& data, XMFLOAT2 imageSize)
     m_data->m_texture->SetName(L"Procedural Texture Resource");
 }
 
+void Texture::Shutdown()
+{
+    // 1) Wait for GPU to finish any work that might reference this texture.
+    //    Caller should ideally do this; but you can do it here if you have access:
+    Application::Get().FlushA();
+
+    // 2) Free SRV descriptor from heap:
+    if (m_descriptorIndex != UINT32_MAX)
+    {
+        auto srvHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        // Ensure DescriptorHeap has a FreeIndex or equivalent method:
+        srvHeap->FreeIndex(m_descriptorIndex);
+        m_descriptorIndex = UINT32_MAX;
+    }
+
+    // 3) Release the GPU resource:
+    if (m_data)
+    {
+        m_data->m_texture.Reset(); // release ID3D12Resource
+        delete m_data;
+        m_data = nullptr;
+    }
+
+    // 4) Clear other fields if needed:
+    m_path.clear();
+    m_imageSize = { 0,0 };
+}
+
 Texture::~Texture()
 {
 	//delete m_data;

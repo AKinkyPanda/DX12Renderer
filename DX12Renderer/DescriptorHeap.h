@@ -7,6 +7,7 @@ using namespace Microsoft::WRL;
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include "d3dx12.h"
+#include <stack>
 
 class Device;
 
@@ -53,9 +54,19 @@ public:
 	/// <returns></returns>
 	UINT GetNextIndex();
 
+	/// <summary>
+	/// Adds textures to be released
+	/// </summary>
+	/// <returns></returns>
+	void FreeIndex(UINT index);
+
 private:
 	ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
 	UINT m_descriptorSize = 0;
 	UINT m_maxDescriptorIndex = 0;
 	UINT m_descriptorIndex = 0;
+
+	std::vector<bool> m_freeFlags; // size = numDescriptors
+	std::stack<UINT> m_freeList;
+	UINT m_nextFree = 0;
 };

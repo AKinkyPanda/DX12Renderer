@@ -11,12 +11,24 @@ cbuffer MatCB : register(b0)
     Mat Matrices;
 }
 
-cbuffer HeightWidth : register(b1)
+//cbuffer HeightWidth : register(b1)
+//{
+//    float4 heightWidth;
+//}
+//
+//cbuffer ChunkOffset : register(b2)
+//{
+//    float4 chunkOffset;
+//}
+
+[root_constants(4, b1)]
+cbuffer HeightWidthRoot
 {
     float4 heightWidth;
 }
 
-cbuffer ChunkOffset : register(b2)
+[root_constants(4, b2)]
+cbuffer ChunkOffsetRoot
 {
     float4 chunkOffset;
 }

@@ -73,15 +73,15 @@ struct LightProperties
 
 #define PI 3.14159265359
 
-cbuffer LightPropertiesCB : register(b1)
+cbuffer LightPropertiesCB : register(b6)
 {
     LightProperties LightPropertiesDelta;
 }
-cbuffer CameraPosition : register(b2)
+cbuffer CameraPosition : register(b7)
 {
     float4 camPos;
 }
-cbuffer cbLightSpace : register(b3)
+cbuffer cbLightSpace : register(b8)
 {
     matrix gLightViewProj;
 };
@@ -119,7 +119,8 @@ float4 height_and_slope_based_color(float height, float slope, float2 UV) {
     float4 grass = float4(GrassTex.Sample(colorSampler, UV).rgb, 1);
     //float4 dirt = float4(0.35f, 0.20f, 0.0f, 1.0f);
     float4 dirt = float4(BlendTex.Sample(colorSampler, UV).rgb, 1);
-    float4 rock = float4(0.42f, 0.42f, 0.52f, 1.0f);
+    //float4 rock = float4(0.42f, 0.42f, 0.52f, 1.0f);
+    float4 rock = float4(RockTex.Sample(colorSampler, UV).rgb, 1);
     float4 snow = float4(0.8f, 0.8f, 0.8f, 1.0f);
  
     float scale = 1024 / 4;

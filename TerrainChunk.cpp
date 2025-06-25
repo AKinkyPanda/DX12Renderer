@@ -3,7 +3,7 @@
 #include "DX12Renderer/Texture.h"
 
 TerrainChunk::TerrainChunk(int chunkX, int chunkZ, int size, float heightScale)
-    : m_chunkX(chunkX), m_chunkZ(chunkZ), m_size(size), m_heightScale(heightScale) {}
+    : m_chunkX(chunkX), m_chunkZ(chunkZ), m_size(size), m_heightScale(heightScale), m_position(XMFLOAT3(0,0,0)) {}
 
 void TerrainChunk::Initialize(const std::vector<float>& /*unused global heightmap*/, int /*heightmapWidth*/, std::unordered_map<std::string, Texture*>& textures) {
     int tessFactor = 4;

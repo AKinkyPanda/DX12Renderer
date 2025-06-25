@@ -6,17 +6,17 @@ struct Mat
     matrix ModelViewProjectionMatrix;
 };
 
-cbuffer MatCB : register(b2)
+cbuffer MatCB : register(b4)
 {
     Mat Matrices;
 }
 
-cbuffer ChunkOffset : register(b3)
+cbuffer ChunkOffset : register(b5)
 {
     float4 chunkOffset;
 }
 
-Texture2D<float4> heightmap : register(t2);
+Texture2D<float4> heightmap : register(t8);
 
 SamplerState hmsampler : register(s0);
 

@@ -1,6 +1,8 @@
 #include "TerrainChunkManager.h"
 #include <algorithm>
 #include <unordered_set>
+#include <iostream>
+#include "DX12Renderer/Application.h"
 
 TerrainChunkManager::TerrainChunkManager(int chunkSize, float heightScale)
     : m_chunkSize(chunkSize), m_heightScale(heightScale) {}
@@ -33,6 +35,7 @@ void TerrainChunkManager::UpdateChunks(const XMFLOAT3& cameraPosition, const std
                 chunk->SetActive(true);
                 m_chunks[key] = chunk;
                 m_activeChunks.push_back(chunk);
+                std::cout << "Activated" << '\n';
             }
             else {
                 // Chunk exists: ensure active
@@ -52,7 +55,10 @@ void TerrainChunkManager::UpdateChunks(const XMFLOAT3& cameraPosition, const std
             // Deactivate
             it->second->SetActive(false);
 
+            Application::Get().FlushA();
+
             // To do : check for explicit cleanup
+            m_chunks[it->first]->GetMesh().Shutdown();
 
             //  Erase from map to free memory
             it = m_chunks.erase(it);

@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 #include "Helpers.h"
 #include "Application.h"
+#include "Texture.h"
 
 using namespace DirectX;
 
@@ -148,11 +149,47 @@ void Mesh::Draw(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, 
 
 void Mesh::Shutdown()
 {
-	m_vertexBuffer->m_bufferResource.~ComPtr();
-	m_indexBuffer->m_bufferResource.~ComPtr();
+	// 1) Ensure GPU is idle or not using these resources (done by caller/outer code via fence)
 
-	m_indexBuffer.~shared_ptr();
-	m_indexBuffer = nullptr;
-	m_vertexBuffer.~shared_ptr();
-	m_vertexBuffer = nullptr;
+	// 2) Release GPU resources by resetting smart pointers:
+	if (m_vertexBuffer)
+	{
+		m_vertexBuffer->m_bufferResource.Reset(); // releases ID3D12Resource
+		// Optionally reset views, though not strictly necessary:
+		m_vertexBuffer->m_vertexView = {};
+	}
+	if (m_indexBuffer)
+	{
+		m_indexBuffer->m_bufferResource.Reset();
+		m_indexBuffer->m_indexView = {};
+	}
+
+	m_vertexBuffer.reset(); // release shared_ptr<BufferData>
+	m_indexBuffer.reset();
+
+	// 3) Clear CPU-side data if you want:
+	m_vertexList.clear();
+	m_vertexList.shrink_to_fit();
+	m_vertexListPosition.clear();
+	m_vertexListPosition.shrink_to_fit();
+	m_indexList.clear();
+	m_indexList.shrink_to_fit();
+
+	// 4) If you own Texture* in m_textureList, ensure those Texture objects are also released elsewhere.
+	//    Typically you might not delete them here if they're shared; but if Mesh "owns" them:
+	//    for (auto& kv : m_textureList) { delete kv.second; }
+	//    Or call a Shutdown() on each Texture object so they release their own GPU resources.
+ 
+	//for (auto& kv : m_textureList)
+	//{
+	//	Texture* tex = kv.second;
+	//	if (tex)
+	//	{
+	//		tex->Shutdown();
+	//		//delete tex; // if Mesh owns the Texture
+	//	}
+	//}
+	m_textureList.clear();
+
+	// 5) Material: if it holds GPU resources, ensure it has its own Shutdown or destructor handling.
 }
