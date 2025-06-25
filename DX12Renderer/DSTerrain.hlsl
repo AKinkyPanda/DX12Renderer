@@ -66,9 +66,9 @@ DS_OUTPUT main(
     float4 interpolatedWorldPos = lerp(bottom, top, domain.y);
 
     // Remove hardcoded values
-    float scale = 1024.0f / 4.0f;
+    float scale = 1020.0f / 4.0f;
 
-    float2 worldUV = (interpolatedWorldPos.xz - (chunkOffset.xy * chunkOffset.zw)) / 1024;
+    float2 worldUV = (interpolatedWorldPos.xz - (chunkOffset.xy * 1020)) / 1020;
     //float2 worldUV = (interpolatedWorldPos.xz - chunkOffset.xy) / chunkOffset.zw;
 
     // Sample from the chunk’s local heightmap texture
@@ -89,15 +89,15 @@ DS_OUTPUT main(
 
     // Normal calculation
     float2 localUV = worldUV;
-    float eps = 1.0 / 1024; // texel step
+    float eps = 1.0 / 1020; // texel step
     float hC = displacement;
     float hL = heightmap.SampleLevel(hmsampler, localUV + float2(-eps,0), 0).r;
     float hR = heightmap.SampleLevel(hmsampler, localUV + float2(eps,0), 0).r;
     float hD = heightmap.SampleLevel(hmsampler, localUV + float2(0,-eps), 0).r;
     float hU = heightmap.SampleLevel(hmsampler, localUV + float2(0,eps), 0).r;
     // convert these to world units if needed: e.g. (hR - hL)*heightScale, etc.
-    float3 tangent = float3(2.0/1024 * 1024, (hR - hL)*1024, 0);
-    float3 bitangent = float3(0, (hU - hD)*256, 2.0/1024 * 1024);
+    float3 tangent = float3(2.0/1020 * 1020, (hR - hL)*1020, 0);
+    float3 bitangent = float3(0, (hU - hD)*255, 2.0/1020 * 1020);
     float3 normal = normalize(cross(bitangent, tangent));
 
     output.norm = float4(normal, 1);

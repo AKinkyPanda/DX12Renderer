@@ -1,38 +1,4 @@
-﻿  PipelineState.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-D:\Git\DX12Renderer\DX12Renderer\PipelineState.cpp(115,88): warning C4267: 'argument': conversion from 'size_t' to 'UINT', possible loss of data
-  Tutorial2.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(978,150): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(978,113): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(978,77): warning C4244: 'argument': conversion from 'int32_t' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(978,56): warning C4244: 'argument': conversion from 'int32_t' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(1184,150): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(1184,113): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(1184,77): warning C4244: 'argument': conversion from 'int32_t' to 'float', possible loss of data
-D:\Git\DX12Renderer\DX12Renderer\Tutorial2.cpp(1184,56): warning C4244: 'argument': conversion from 'int32_t' to 'float', possible loss of data
-  main.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-  PSOShadowMap.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-  PSOSkybox.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-  PSOTerrain.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-D:\Git\DX12Renderer\PSOTerrain.cpp(140,88): warning C4267: 'argument': conversion from 'size_t' to 'UINT', possible loss of data
-  PSOTerrainShadowMap.cpp
-D:\Git\DX12Renderer\UploadBuffer.h(77,51): warning C4099: 'std::default_delete<UploadBuffer>': type name first seen using 'struct' now seen using 'class'
-D:\Git\DX12Renderer\UploadBuffer.h(77,23): message : see declaration of 'std::default_delete<UploadBuffer>'
-D:\Git\DX12Renderer\PSOTerrainShadowMap.cpp(124,88): warning C4267: 'argument': conversion from 'size_t' to 'UINT', possible loss of data
-D:\Git\DX12Renderer\PSOTerrainShadowMap.cpp(190,25): warning C4244: '=': conversion from 'float' to 'INT', possible loss of data
-  TerrainChunk.cpp
-  TerrainChunkManager.cpp
-  Generating Code...
-  LINK : D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe not found or not built by the last incremental link; performing full link
+﻿D:\Git\DX12Renderer\DX12Renderer\DSTerrain.hlsl(88,5-73): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see D:\Git\DX12Renderer\x64\Debug\DSTerrain.cso
   DX12Renderer.vcxproj -> D:\Git\DX12Renderer\x64\Debug\DX12Renderer.exe
