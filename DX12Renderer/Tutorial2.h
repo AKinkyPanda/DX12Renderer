@@ -86,6 +86,10 @@ public:
 
     std::vector<float> Tutorial2::GenerateHeightmap(FastNoiseLite::NoiseType noiseType, int width, int height);
 
+    void Tutorial2::BuildFrustumPlanes(const XMMATRIX& view, const XMMATRIX& proj, std::array<XMFLOAT4, 6>& outPlanes);
+
+    bool Tutorial2::IsBoxInsideFrustum(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, const std::array<XMFLOAT4, 6>& planes);
+
     //Descriptor Heap for textures
     std::shared_ptr<ID3D12DescriptorHeap> m_SRVHeap;
 
@@ -145,20 +149,6 @@ private:
     void ComputeLightSpaceMatrix();
 
     uint64_t m_FenceValues[Window::BufferCount] = {};
-
-    // Vertex buffer for the cube.
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_VertexBuffer;
-    D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
-    // Index buffer for the cube.
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_IndexBuffer;
-    D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;
-
-    //std::shared_ptr<Mesh> m_Mesh = std::make_shared<Mesh>();
-    Mesh m_Mesh;
-    DirectX::XMMATRIX m_TempModelMatrix;
-    std::vector<Mesh> m_meshes;
-    std::vector<Mesh> m_Monkey;
-    std::unordered_map<std::string, Texture*> m_MonekyTextureList;
 
     // Heightmap / Terrain
     std::vector<Mesh> m_Terrain;

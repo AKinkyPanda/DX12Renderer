@@ -1,4 +1,4 @@
-#include "Tutorial2.h"
+﻿#include "Tutorial2.h"
 
 #include "Application.h"
 #include "CommandQueue.h"
@@ -201,27 +201,6 @@ bool Tutorial2::LoadContent()
     m_TerrainPipelineState = std::make_shared<PSOTerrain>(L"VSTerrain", L"PSTerrain", L"HSTerrain", L"DSTerrain", D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
     m_TerrainShadowMapPipelineState = std::make_shared<PSOTerrainShadowMap>(L"VSTerrain", L"HSTerrainShadowMap", L"DSTerrainShadowMap", D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
 
-    m_meshes = LoadObjModel("D:/BUAS/Y4/DX12Renderer/Assets/Models/crytek-sponza/sponza_nobanner.obj");
-
-    m_Monkey = LoadObjModel("../../Assets/Models/Lantern/lantern_obj.obj");
-    const Texture* color = LoadTextureIndependant("../../Assets/Models/Lantern/textures/color.jpg");
-    const Texture* normal = LoadTextureIndependant("../../Assets/Models/Lantern/textures/normal.jpg");
-    const Texture* metallic = LoadTextureIndependant("../../Assets/Models/Lantern/textures/metallic.jpg");
-    const Texture* roughness = LoadTextureIndependant("../../Assets/Models/Lantern/textures/roughness.jpg");
-    const Texture* ao = LoadTextureIndependant("../../Assets/Models/Lantern/textures/ao.jpg");
-    m_MonekyTextureList.emplace(std::make_pair("diffuse", const_cast<Texture*>(color)));
-    m_MonekyTextureList.emplace(std::make_pair("normal", const_cast<Texture*>(normal)));
-    m_MonekyTextureList.emplace(std::make_pair("metallic", const_cast<Texture*>(metallic)));
-    m_MonekyTextureList.emplace(std::make_pair("roughness", const_cast<Texture*>(roughness)));
-    m_MonekyTextureList.emplace(std::make_pair("ao", const_cast<Texture*>(ao)));
-
-    m_Monkey[0].AddTextureData(m_MonekyTextureList);
-
-    //for (int i = 0; i < m_Monkey.size(); i++)
-    //{
-    //    m_Monkey[i].AddTextureData(m_MonekyTextureList);
-    //}
-
     ///////////////////////////////////////////////////////////////
     // HIGHTMAP
     ///////////////////////////////////////////////////////////////
@@ -392,23 +371,20 @@ bool Tutorial2::LoadContent()
     std::shared_ptr<DescriptorHeap> ShadowSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     std::shared_ptr<DescriptorHeap> ShadowDSVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-    m_ShadowMap = std::make_unique<ShadowMap>(device.Get(), 2048, 2048);
+    //m_ShadowMap = std::make_unique<ShadowMap>(device.Get(), 2048, 2048);
 
-    UINT m_ShadowMapCPUSRVDescriptorIndex = ShadowSRVHeap->GetNextIndex();
-    UINT m_ShadowMapGPUSRVDescriptorIndex = m_ShadowMapCPUSRVDescriptorIndex;
-    UINT m_ShadowMapCPUDSVDescriptorIndex = ShadowDSVHeap->GetNextIndex();
+    //UINT m_ShadowMapCPUSRVDescriptorIndex = ShadowSRVHeap->GetNextIndex();
+    //UINT m_ShadowMapGPUSRVDescriptorIndex = m_ShadowMapCPUSRVDescriptorIndex;
+    //UINT m_ShadowMapCPUDSVDescriptorIndex = ShadowDSVHeap->GetNextIndex();
 
-    m_ShadowMap->BuildDescriptors(
-        ShadowSRVHeap->GetCPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
-        ShadowSRVHeap->GetGPUHandleAt(m_ShadowMapGPUSRVDescriptorIndex),
-        ShadowDSVHeap->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
+    //m_ShadowMap->BuildDescriptors(
+    //    ShadowSRVHeap->GetCPUHandleAt(m_ShadowMapCPUSRVDescriptorIndex),
+    //    ShadowSRVHeap->GetGPUHandleAt(m_ShadowMapGPUSRVDescriptorIndex),
+    //    ShadowDSVHeap->GetCPUHandleAt(m_ShadowMapCPUDSVDescriptorIndex) );
 
     ///////////////////////////////////////////////////////////////
     // TERRAIN SHADOW MAP
     ///////////////////////////////////////////////////////////////
-
-    //std::shared_ptr<DescriptorHeap> TerrainShadowSRVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    //std::shared_ptr<DescriptorHeap> TerrainShadowDSVHeap = Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
     m_TerrainShadowMap = std::make_unique<ShadowMap>(device.Get(), 2048, 2048);
 
@@ -780,6 +756,10 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
     XMMATRIX projectionMatrix = m_Camera.get_ProjectionMatrix();
 
+    // 1) Build frustum planes once per frame:
+    std::array<XMFLOAT4, 6> frustumPlanes;
+    BuildFrustumPlanes(viewMatrix, projectionMatrix, frustumPlanes);
+
     /* //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     *   SKY BOX START
     */ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -833,74 +813,12 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     // 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    commandList->RSSetViewports(1, &m_ShadowMap->Viewport());
-    commandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
-
-    // Change to DEPTH_WRITE.
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));    
-
-    commandList->OMSetRenderTargets(0, nullptr, false, &m_ShadowMap->Dsv());
-
-    commandList->ClearDepthStencilView(m_ShadowMap->Dsv(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-    commandList->SetPipelineState(m_ShadowMapPipelineState->GetPipelineState().Get());
-    commandList->SetGraphicsRootSignature(m_ShadowMapPipelineState->GetRootSignature().Get());
-    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
-
-    XMFLOAT4X4 lightViewProj;
-    XMStoreFloat4x4(&lightViewProj, m_LightViewProj);
-    SetGraphics32BitConstants(0, lightViewProj, commandList);
-
-    // Lanter PBR
-    for (int i = 0; i < m_Monkey.size(); i++)
-    {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
-        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
-
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, -5000); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        XMFLOAT4X4 lightWorld;
-        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
-        SetGraphics32BitConstants(1, lightWorld, commandList);
-        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
-    }
-
-    // Test Mesh
-    for (int i = 0; i < m_meshes.size(); i++)
-    {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));
-        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_meshes[i].GetIndexBuffer()));
-
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 5000); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        XMFLOAT4X4 lightWorld;
-        XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
-        SetGraphics32BitConstants(1, lightWorld, commandList);
-        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
-    }
-
-    // Change back to GENERIC_READ so we can read the texture in a shader.
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));   
-
-
     commandList->RSSetViewports(1, &m_TerrainShadowMap->Viewport());
     commandList->RSSetScissorRects(1, &m_TerrainShadowMap->ScissorRect());
 
     // Change to DEPTH_WRITE.
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_TerrainShadowMap->Resource(),
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
-    // Transition texture to the correct state for use in the pixel shader
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-    //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
@@ -916,64 +834,41 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->SetGraphicsRootSignature(m_TerrainShadowMapPipelineState->GetRootSignature().Get());
     commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
-    // Terrain
-    //for (int i = 0; i < m_Terrain.size(); i++)
-    //{
-    //    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-    //    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
-    //    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
-
-    //    XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
-    //    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
-    //    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-    //    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-
-    //    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-    //    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-    //    //XMFLOAT4X4 lightWorld;
-    //    //XMStoreFloat4x4(&lightWorld, XMMatrixTranspose(worldMatrix));
-    //    //SetGraphics32BitConstants(1, lightWorld, commandList);
-
-    //    XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
-    //    SetGraphics32BitConstants(1, heightWidth, commandList);
-
-    //    XMFLOAT4 chunkData = XMFLOAT4(0, 0, 0, 0);
-    //    SetGraphics32BitConstants(2, chunkData, commandList);
-
-    //    auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
-    //    commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
-
-    //    SetGraphics32BitConstants(4, CameraPos, commandList);
-
-    //    SetGraphicsDynamicConstantBuffer(5, matrices, commandList, m_UploadBuffer.get());
-
-    //    commandList->SetGraphicsRootDescriptorTable(6, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
-
-    //    SetGraphics32BitConstants(7, lightViewProj, commandList);
-
-    //    //SetGraphics32BitConstants(8, chunkData, commandList);
-
-    //    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
-    //}
+    XMFLOAT4X4 lightViewProj;
+    XMStoreFloat4x4(&lightViewProj, m_LightViewProj);
 
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
-        //XMMATRIX world = chunk->GetWorldMatrix(); // Based on chunk grid pos
+        // Chunk world-space bounds:
+        float chunkX = float(chunk->GetChunk().x * 1024);
+        float chunkZ = float(chunk->GetChunk().y * 1024);
+        float minX = chunkX;
+        float maxX = chunkX + 1024.0f;
+        float minZ = chunkZ;
+        float maxZ = chunkZ + 1024.0f;
+
+        // Y range of your terrain: adjust to your real min/max height
+        const float minY = 0.0f;
+        const float maxY = 500.0f;
+
+        // Cull:
+        if (!IsBoxInsideFrustum(minX, minY, minZ, maxX, maxY, maxZ, frustumPlanes))
+            continue;
+
         //XMMATRIX translationMatrix = XMMatrixTranslation(chunk->GetWorldPosition().x, chunk->GetWorldPosition().y, chunk->GetWorldPosition().z); //XMMatrixIdentity();
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        Mat matrices;
-        ComputeMatrices(worldMatrix, viewMatrix, viewMatrix * projectionMatrix, matrices);
+        XMMATRIX translationMatrixTerrainShadow = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
+        XMMATRIX rotationMatrixTerrainShadow = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrixTerrainShadow = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX worldMatrixTerrainShadow = scaleMatrix * rotationMatrix * translationMatrix;
+        Mat matricesTerrainShadow;
+        ComputeMatrices(worldMatrixTerrainShadow, viewMatrix, viewMatrix * projectionMatrix, matricesTerrainShadow);
 
         // Set camera, light, textures, etc...
-        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicConstantBuffer(0, matricesTerrainShadow, commandList, m_UploadBuffer.get());
         // Set root descriptors for terrain heightmap, textures...
 
-        XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
-        SetGraphics32BitConstants(1, heightWidth, commandList);
+        XMVECTOR heightWidthTerrainShadow = XMVectorSet(1024, 1024, 0, 0);
+        SetGraphics32BitConstants(1, heightWidthTerrainShadow, commandList);
 
         XMFLOAT4 chunkData = XMFLOAT4(chunk->GetChunk().x, chunk->GetChunk().y, (chunk->GetChunkSize() / 4 - 1) * 4, (chunk->GetChunkSize() / 4 - 1) * 4);
         SetGraphics32BitConstants(2, chunkData, commandList);
@@ -996,10 +891,6 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         chunk->GetMesh().Draw(commandList, D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
     }
 
-    // Transition texture to the correct state for use out of the pixel shader
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-    //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(chunk->GetMesh().GetTextureList()["Heightmap"]->GetTexture()),
@@ -1014,94 +905,15 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     // SHADOW MAP END
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // TERRAIN
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     commandList->RSSetViewports(1, &m_Viewport);
     commandList->RSSetScissorRects(1, &m_ScissorRect);
 
     commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-
-    commandList->SetPipelineState(m_PipelineState->GetPipelineState().Get());
-    commandList->SetGraphicsRootSignature(m_PipelineState->GetRootSignature().Get());
-    commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
-
-    LightProperties lightProps;
-    lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
-    lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
-    lightProps.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
-
-    SetGraphics32BitConstants(1, lightProps, commandList);
-    SetGraphics32BitConstants(2, CameraPos, commandList);
-    SetGraphics32BitConstants(3, m_LightViewProj, commandList);
-
-    SetGraphicsDynamicStructuredBuffer(4, m_PointLights, commandList, m_UploadBuffer.get());
-    SetGraphicsDynamicStructuredBuffer(5, m_SpotLights, commandList, m_UploadBuffer.get());
-    SetGraphicsDynamicStructuredBuffer(6, m_DirectionalLights, commandList, m_UploadBuffer.get());
-
-    auto descriptorIndex = m_Monkey[0].GetTextureList()["diffuse"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
-
-    auto descriptorIndex2 = m_Monkey[0].GetTextureList()["normal"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(8, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex2));
-
-    auto descriptorIndex3 = m_Monkey[0].GetTextureList()["metallic"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(9, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex3));
-
-    auto descriptorIndex4 = m_Monkey[0].GetTextureList()["roughness"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex4));
-
-    auto descriptorIndex5 = m_Monkey[0].GetTextureList()["ao"]->m_descriptorIndex;
-    commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex5));
-
-    commandList->SetGraphicsRootDescriptorTable(13, m_ShadowMap->Srv());
-
-    // Lanter PBR
-    for (int i = 0; i < m_Monkey.size(); i++)
-    {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Monkey[i].GetVertexBuffer()));
-        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Monkey[i].GetIndexBuffer()));
-
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, - 5000); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(6, 6, 6); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-        Mat matrices;
-        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Monkey[i].GetIndexList().size()), 1, 0, 0, 0);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    // Test Meshes
-    for (int i = 0; i < m_meshes.size(); i++)
-    {
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_meshes[i].GetVertexBuffer()));
-        commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_meshes[i].GetIndexBuffer()));
-
-        // Draw sponza
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, -1000, 5000); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), 0, 0);//XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-        Mat matrices;
-        ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-        auto descriptorIndex = m_meshes[i].GetTextureList()["diffuse"]->m_descriptorIndex;
-        commandList->SetGraphicsRootDescriptorTable(7, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndex));
-
-        commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_meshes[i].GetIndexList().size()), 1, 0, 0, 0);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // Transition texture to the correct state for use in the pixel shader
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-    //    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
@@ -1114,68 +926,40 @@ void Tutorial2::OnRender(RenderEventArgs& e)
     commandList->SetGraphicsRootSignature(m_TerrainPipelineState->GetRootSignature().Get());
     commandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
 
-    // Terrain
-    //for (int i = 0; i < m_Terrain.size(); i++)
-    //{
-    //    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-    //    commandList->IASetVertexBuffers(0, 1, static_cast<D3D12_VERTEX_BUFFER_VIEW*>(m_Terrain[i].GetVertexBuffer()));
-    //    commandList->IASetIndexBuffer(static_cast<D3D12_INDEX_BUFFER_VIEW*>(m_Terrain[i].GetIndexBuffer()));
-
-    //    XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
-    //    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0,0,0);//XMMatrixIdentity();
-    //    XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-    //    XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-    //    XMMATRIX viewProjectionMatrix = viewMatrix * projectionMatrix;
-    //    Mat matrices;
-    //    ComputeMatrices(worldMatrix, viewMatrix, viewProjectionMatrix, matrices);
-    //    SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
-
-    //    XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
-    //    SetGraphics32BitConstants(1, heightWidth, commandList);
-
-    //    auto descriptorIndexTerrain = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
-    //    commandList->SetGraphicsRootDescriptorTable(2, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
-
-    //    SetGraphics32BitConstants(3, lightProps, commandList);
-    //    SetGraphics32BitConstants(4, CameraPos, commandList);
-    //    SetGraphics32BitConstants(5, m_LightViewProj, commandList);
-
-    //    SetGraphicsDynamicStructuredBuffer(6, m_PointLights, commandList, m_UploadBuffer.get());
-    //    SetGraphicsDynamicStructuredBuffer(7, m_SpotLights, commandList, m_UploadBuffer.get());
-    //    SetGraphicsDynamicStructuredBuffer(8, m_DirectionalLights, commandList, m_UploadBuffer.get());
-
-    //    commandList->SetGraphicsRootDescriptorTable(9, m_TerrainShadowMap->Srv());
-
-    //    commandList->SetGraphicsRootDescriptorTable(10, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainGrassTexture->m_descriptorIndex));
-    //    commandList->SetGraphicsRootDescriptorTable(11, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainBlendTexture->m_descriptorIndex));
-    //    commandList->SetGraphicsRootDescriptorTable(12, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(m_TerrainRockTexture->m_descriptorIndex));
-
-    //    SetGraphics32BitConstants(13, CameraPos, commandList);
-
-    //    SetGraphicsDynamicConstantBuffer(14, matrices, commandList, m_UploadBuffer.get());
-
-    //    commandList->SetGraphicsRootDescriptorTable(15, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexTerrain));
-
-    //    commandList->DrawIndexedInstanced(static_cast<uint32_t>(m_Terrain[i].GetIndexList().size()), 1, 0, 0, 0);
-    //}
-
-    // Transition texture to the correct state for use out of the pixel shader
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(static_cast<ID3D12Resource*>(m_Terrain[0].GetTextureList()["Heightmap"]->GetTexture()),
-    //   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    LightProperties lightProps;
+    lightProps.NumPointLights = static_cast<uint32_t>(m_PointLights.size());
+    lightProps.NumSpotLights = static_cast<uint32_t>(m_SpotLights.size());
+    lightProps.NumDirectionalLights = static_cast<uint32_t>(m_DirectionalLights.size());
 
     for (auto& chunk : m_TerrainChunkManager.GetActiveChunks())
     {
-        //XMMATRIX world = chunk->GetWorldMatrix(); // Based on chunk grid pos
+
+        // Chunk world-space bounds:
+        float chunkX = float(chunk->GetChunk().x * 1024);
+        float chunkZ = float(chunk->GetChunk().y * 1024);
+        float minX = chunkX;
+        float maxX = chunkX + 1024.0f;
+        float minZ = chunkZ;
+        float maxZ = chunkZ + 1024.0f;
+
+        // Y range of your terrain: adjust to your real min/max height
+        const float minY = 0.0f;
+        const float maxY = 500.0f;
+
+        // Cull:
+        if (!IsBoxInsideFrustum(minX, minY, minZ, maxX, maxY, maxZ, frustumPlanes))
+            continue;
+
         //XMMATRIX translationMatrix = XMMatrixTranslation(chunk->GetWorldPosition().x, chunk->GetWorldPosition().y, chunk->GetWorldPosition().z); //XMMatrixIdentity();
-        XMMATRIX translationMatrix = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
-        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
-        XMMATRIX scaleMatrix = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
-        XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        Mat matrices;
-        ComputeMatrices(worldMatrix, viewMatrix, viewMatrix * projectionMatrix, matrices);
+        XMMATRIX translationMatrixTerrain = XMMatrixTranslation(0, 0, 0); //XMMatrixIdentity();
+        XMMATRIX rotationMatrixTerrain = XMMatrixRotationRollPitchYaw(0, 0, 0);//XMMatrixIdentity();
+        XMMATRIX scaleMatrixTerrain = XMMatrixScaling(1, 1, 1); //XMMatrixIdentity();
+        XMMATRIX worldMatrixTerrain = scaleMatrix * rotationMatrix * translationMatrix;
+        Mat matricesTerrain;
+        ComputeMatrices(worldMatrixTerrain, viewMatrix, viewMatrix * projectionMatrix, matricesTerrain);
 
         // Set camera, light, textures, etc...
-        SetGraphicsDynamicConstantBuffer(0, matrices, commandList, m_UploadBuffer.get());
+        SetGraphicsDynamicConstantBuffer(0, matricesTerrain, commandList, m_UploadBuffer.get());
         // Set root descriptors for terrain heightmap, textures...
 
         XMVECTOR heightWidth = XMVectorSet(1024, 1024, 0, 0);
@@ -1184,7 +968,6 @@ void Tutorial2::OnRender(RenderEventArgs& e)
         XMFLOAT4 chunkData = XMFLOAT4(chunk->GetChunk().x, chunk->GetChunk().y, (chunk->GetChunkSize() / 4 - 1) * 4, (chunk->GetChunkSize() / 4 - 1) * 4);
         SetGraphics32BitConstants(2, chunkData, commandList);
 
-        //auto descriptorIndexHeightmap = m_Terrain[0].GetTextureList()["Heightmap"]->m_descriptorIndex;
         auto descriptorIndexHeightmap = chunk->GetMesh().GetTextureList()["Heightmap"]->m_descriptorIndex;
         commandList->SetGraphicsRootDescriptorTable(3, Application::Get().GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetGPUHandleAt(descriptorIndexHeightmap));
 
@@ -1561,7 +1344,7 @@ std::vector<float> Tutorial2::GenerateHeightmap(FastNoiseLite::NoiseType noiseTy
     m_Noise.SetFrequency(0.2f);
 
     m_Noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    m_Noise.SetFractalOctaves(4);       // Try 3�6 octaves
+    m_Noise.SetFractalOctaves(4);       // Try 3–6 octaves
     m_Noise.SetFractalLacunarity(2.0f); // Controls frequency increase per octave
     m_Noise.SetFractalGain(0.5f);       // Controls amplitude reduction per octave
 
@@ -1582,6 +1365,67 @@ std::vector<float> Tutorial2::GenerateHeightmap(FastNoiseLite::NoiseType noiseTy
     }
 
     return data;
+}
+
+// Extract the six frustum planes from view*proj (row-major), in the form (a,b,c,d):
+//   plane.x/a, plane.y/b, plane.z/c, plane.w/d.
+// After this, a point X is inside if a*X.x + b*X.y + c*X.z + d >= 0.
+void Tutorial2::BuildFrustumPlanes(const XMMATRIX& view, const XMMATRIX& proj, std::array<XMFLOAT4, 6>& outPlanes)
+{
+    // Compute View×Proj and transpose for easier row access:
+    XMMATRIX vp = XMMatrixMultiply(view, proj);
+    XMMATRIX m = XMMatrixTranspose(vp);
+
+    // Rows of the transposed matrix:
+    XMVECTOR row0 = m.r[0];
+    XMVECTOR row1 = m.r[1];
+    XMVECTOR row2 = m.r[2];
+    XMVECTOR row3 = m.r[3];
+
+    // Left  = row3 + row0
+    // Right = row3 - row0
+    // Bottom= row3 + row1
+    // Top   = row3 - row1
+    // Near  = row2         (i.e. row3 + row? alternative formulas exist)
+    // Far   = row3 - row2
+    XMVECTOR planes[6] = {
+        row3 + row0,  // left
+        row3 - row0,  // right
+        row3 + row1,  // bottom
+        row3 - row1,  // top
+        row2,         // near
+        row3 - row2   // far
+    };
+
+    // Normalize planes:
+    for (int i = 0; i < 6; ++i)
+    {
+        // plane = (a,b,c,d)
+        XMVECTOR n = XMPlaneNormalize(planes[i]);
+        XMStoreFloat4(&outPlanes[i], n);
+    }
+}
+// Test an AABB [minX..maxX]×[minY..maxY]×[minZ..maxZ] against the 6 frustum planes.
+// Returns false if the box is completely outside any plane.
+bool Tutorial2::IsBoxInsideFrustum(
+    float minX, float minY, float minZ,
+    float maxX, float maxY, float maxZ,
+    const std::array<XMFLOAT4, 6>& planes)
+{
+    // For each plane (a,b,c,d):
+    for (int i = 0; i < 6; ++i)
+    {
+        const XMFLOAT4& P = planes[i];
+        // Choose the corner of the AABB that is *most* likely to be outside:
+        // if ai>=0 use maxX, else minX, etc.
+        float x = P.x >= 0 ? maxX : minX;
+        float y = P.y >= 0 ? maxY : minY;
+        float z = P.z >= 0 ? maxZ : minZ;
+        // If that corner is still “behind” the plane, the whole box is outside.
+        if (P.x * x + P.y * y + P.z * z + P.w < 0)
+            return false;
+    }
+    return true;
 }
 
 /*
