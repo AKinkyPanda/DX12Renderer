@@ -18,13 +18,7 @@ public:
         int width, int height,
         float noiseScale);
 
-    std::vector<float> GenerateChunkHeightmap2(FastNoiseLite::NoiseType noiseType, int chunkX, int chunkZ, int vertsPerSide, int UNUSED_height, float noiseScale);
-
-    float SampleNoiseWithSlope(float x, float z, float eps, float exaggeration);
-
     float FbmNoiseWithFD(float x0, float z0, int octaves, float lac, float gain, float eps, float kAtten);
-    float FbmNoiseWithFD2(float x0, float z0, int octaves, float lac, float gain, float eps, float kAtten);
-    float FbmNoiseWithFD(float x0, float z0, int octaves, float lac, float gain, float eps, float kAtten, float minAtt, float maskFreq, float maskPower, float maskThreshold, bool useAltAttenuation);
 
     void SetActive(bool active);
     bool IsActive() const;
