@@ -1,4 +1,6 @@
-﻿#include "TerrainChunk.h"
+﻿#define NOMINMAX
+
+#include "TerrainChunk.h"
 #include <algorithm>
 #include "DX12Renderer/Texture.h"
 
@@ -134,13 +136,17 @@ std::vector<float> TerrainChunk::GenerateChunkHeightmap(
             //float base = 1 - std::abs(FbmNoiseWithFD2(nx, nz, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f));
             //float base = 1 - std::abs(m_Noise.GetNoise(nx, nz));
 
-            XMFLOAT2 q = XMFLOAT2(FbmNoiseWithFD(nx + 0, nz + 0, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f),
-                                  FbmNoiseWithFD(nx + 5.2f, nz + 1.3f, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f));            
-            
-            XMFLOAT2 r = XMFLOAT2(FbmNoiseWithFD(nx + 1.7f + 4*q.x, nz + 9.2f + 4*q.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f),
-                                  FbmNoiseWithFD(nx + 8.3f + 4*q.x, nz + 2.8f + 4 * q.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f));
+            //XMFLOAT2 q = XMFLOAT2(FbmNoiseWithFD(nx + 0, nz + 0, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f),
+            //                      FbmNoiseWithFD(nx + 5.2f, nz + 1.3f, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f));            
+            //
+            //XMFLOAT2 r = XMFLOAT2(FbmNoiseWithFD(nx + 1.7f + 4*q.x, nz + 9.2f + 4*q.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f),
+            //                      FbmNoiseWithFD(nx + 8.3f + 4*q.x, nz + 2.8f + 4 * q.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f));
 
-            float base = FbmNoiseWithFD(nx + 4 * r.x, nz + 4 * r.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f);
+            //float base = FbmNoiseWithFD(nx + 4 * r.x, nz + 4 * r.y, 8, 1.8f, 0.5f, 1e-3f, /*kAtten*/ 0.5f);
+
+            float base = UberNoise(/*x*/ nx, /*y*/ nz, /*octaves*/ 8, /*perturbance*/ 0.15f, /*sharpness*/ 0.25f, /*amplification*/ 0.2f, 
+                                   /*altErode*/ 0.75f, /*RidgeErode*/ 0.75f, /*SlopeErode*/ 0.001f,  /*lacunarity*/ 1.8f, /*gain*/ 0.5f, 
+                                   /*frequency*/ noiseScale, /*epsilon*/ 1e-3f, /*kAtten*/ 0.5f );
 
             heightmapLocal[z * vertsPerSide + x] = base;
         }
@@ -154,8 +160,8 @@ float TerrainChunk::FbmNoiseWithFD(
     float lac,
     float gain,
     float eps,
-    float kAtten
-) {
+    float kAtten) 
+{
     // 1. Theoretical amplitude sum (no attenuation) for normalization
     float sumAmp = 0.0f;
     {
@@ -223,4 +229,102 @@ float TerrainChunk::FbmNoiseWithFD(
     return hNorm;
     //return 0.5f * (hNorm + 1.0f);
     //return sum;
+}
+
+float TerrainChunk::UberNoise(
+    float x0, float z0,
+    int   octaves,
+    float perturbAmt,
+    float sharpness,
+    float amplify,
+    float altitudeErode,
+    float ridgeErode,
+    float slopeErode,
+    float lacunarity,
+    float gain,
+    float baseFreq,
+    float eps,
+    float kAtten)       // FDG’s slope attenuation 
+{
+    // 1. Theoretical amplitude sum (no attenuation) for normalization
+    float sumAmp = 0.0f;
+    {
+        float ampTmp = 1.0f;
+        for (int i = 0; i < octaves; i++) {
+            sumAmp += ampTmp;
+            ampTmp *= gain;
+        }
+    }
+
+    float x = x0;
+    float z = z0;
+
+    float sum = 0.5f;
+    float amplitude = 1.0f;
+    float freq = 1.0f;
+    float dampedAmplitude = 0.0f;
+    float currentGain = gain;
+
+    XMFLOAT2 slopeErosionDerSum = XMFLOAT2(0, 0);
+    XMFLOAT2 ridgeErosionDerSum = XMFLOAT2(0, 0);
+    XMFLOAT2 perturbDerSum = XMFLOAT2(0, 0);
+
+    // Running derivative of height so far (in base coordinate space)
+    float derivX = 0.0f;
+    float derivZ = 0.0f;
+
+    for (int i = 0; i < octaves; i++) {
+
+        // Sample noise
+        float n = m_Noise.GetNoise(x, z); // [-1,1]
+
+        float ridgedNoise = 1.0 - abs(n);
+        float billowNoise = n * n;
+
+        n = std::lerp(n, billowNoise, std::max(0.0f, sharpness));
+        n = std::lerp(n, ridgedNoise, std::abs(std::min(0.0f, sharpness)));
+
+
+        // Compute derivative of this octave’s noise (in base coords)
+        float dx_n = 0.0f, dz_n = 0.0f;
+        if (kAtten > 0.0f) {
+            float nx = m_Noise.GetNoise(x + eps, z);
+            float nz = m_Noise.GetNoise(x, z + eps);
+            dx_n = (nx - n) / eps * freq;
+            dz_n = (nz - n) / eps * freq;
+        }
+
+        slopeErosionDerSum = XMFLOAT2((slopeErosionDerSum.x + dx_n) * slopeErode, (slopeErosionDerSum.y + dz_n) * slopeErode);
+        float dot = slopeErosionDerSum.x * slopeErosionDerSum.x + slopeErosionDerSum.y * slopeErosionDerSum.y;
+
+        sum += amplitude * n * (1.0f / (1.0f + dot));
+
+        sum += dampedAmplitude * n * (1.0f / (1.0f + dot));
+
+        amplitude *= std::lerp(currentGain, currentGain * smoothstep(0.0f, 1.0f, sum), altitudeErode);
+
+        ridgeErosionDerSum = XMFLOAT2((ridgeErosionDerSum.x + dx_n) * ridgeErode, (ridgeErosionDerSum.y + dz_n) * ridgeErode);
+        float dotRidge = ridgeErosionDerSum.x * ridgeErosionDerSum.x + ridgeErosionDerSum.y * ridgeErosionDerSum.y;
+        dampedAmplitude = amplitude * (1.0f - (ridgeErode / (1.0f + dotRidge)));
+
+        x = (x0 * freq) + perturbDerSum.x;
+        z = (z0 * freq) + perturbDerSum.y;
+        perturbDerSum = XMFLOAT2((perturbDerSum.x + dx_n) * perturbAmt, (perturbDerSum.y + dz_n) * perturbAmt);
+
+        currentGain = gain + amplify;
+        freq *= lacunarity;
+    }
+
+    // Normalize to [-1,1]
+    float hNorm = sum / sumAmp;
+    return hNorm;
+    //return 0.5f * (hNorm + 1.0f);
+    //return sum;
+}
+
+float TerrainChunk::smoothstep(float edge0, float edge1, float x) {
+    // Scale, bias and saturate x to 0..1 range
+    x = std::clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    // Evaluate polynomial
+    return x * x * (3 - 2 * x);
 }

@@ -19,6 +19,22 @@ public:
         float noiseScale);
 
     float FbmNoiseWithFD(float x0, float z0, int octaves, float lac, float gain, float eps, float kAtten);
+    float UberNoise(
+        float x0, float z0,
+        int   octaves,
+        float perturbAmt,
+        float sharpness,
+        float amplify,
+        float altitudeErode,
+        float ridgeErode,
+        float slopeErode,
+        float lacunarity,
+        float gain,
+        float baseFreq,
+        float eps,
+        float kAtten);
+
+    float smoothstep(float edge0, float edge1, float x);
 
     void SetActive(bool active);
     bool IsActive() const;
